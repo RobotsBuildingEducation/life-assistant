@@ -1,15 +1,12 @@
-import React, { useEffect, useState } from "react";
+// src/App.jsx
+
+import React, { useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
-  Button,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  DrawerHeader,
-  DrawerBody,
-  VStack,
+  IconButton,
+  HStack,
+  useToast,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -18,23 +15,45 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Spinner,
+  Button,
+  Flex,
+  Divider,
   Text,
-  useToast,
+  Link,
 } from "@chakra-ui/react";
-import { HamburgerIcon } from "@chakra-ui/icons";
-import { createUser, getUser, updateUser } from "./firebaseResources/store";
-import { database } from "./firebaseResources/config";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { FiLogOut, FiKey, FiUser, FiGlobe, FiDownload } from "react-icons/fi";
+import { GiExitDoor } from "react-icons/gi";
+
+import { FaIdCard, FaKey } from "react-icons/fa6";
+import { IoShareOutline } from "react-icons/io5";
+import { IoIosMore } from "react-icons/io";
+import { BsPlusSquare } from "react-icons/bs";
+import { LuBadgeCheck } from "react-icons/lu";
+
+import { getUser } from "./firebaseResources/store";
 import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
+
+const ActionButton = ({ href, text, userLanguage }) => (
+  <Button
+    as="a"
+    href={href}
+    mt={2}
+    mb={4}
+    variant={"outline"}
+    target="_blank"
+    width="45%"
+    margin={2}
+    height={100}
+    boxShadow="0.5px 0.5px 1px 0px rgba(0,0,0,0.75)"
+    fontSize={"small"}
+  >
+    {text}
+  </Button>
+);
 
 function App() {
   const { nostrPubKey } = useDecentralizedIdentity(
@@ -45,62 +64,45 @@ function App() {
   const location = useLocation();
   const toast = useToast();
 
-  // Drawer state
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  // Profile modal state
+  // Disclosure hooks for Network and Install modals
   const {
-    isOpen: isProfileOpen,
-    onOpen: onProfileOpen,
-    onClose: onProfileClose,
+    isOpen: isNetworkOpen,
+    onOpen: onNetworkOpen,
+    onClose: onNetworkClose,
+  } = useDisclosure();
+  const {
+    isOpen: isInstallOpen,
+    onOpen: onInstallOpen,
+    onClose: onInstallClose,
   } = useDisclosure();
 
-  // Profile fields
-  const [profile, setProfile] = useState({
-    goals: "",
-    diet: "",
-    education: "",
-    responsibilities: "",
-  });
-  const [loadingProfile, setLoadingProfile] = useState(true);
-
-  // Fetch profile on mount
-  useEffect(() => {
-    if (!nostrPubKey) return;
-    (async () => {
-      try {
-        const user = await getUser(nostrPubKey);
-        if (user) {
-          setProfile({
-            goals: user.goals || "",
-            diet: user.diet || "",
-            education: user.education || "",
-            responsibilities: user.responsibilities || "",
-          });
-        }
-      } catch (err) {
-        console.error("Error loading profile:", err);
-      } finally {
-        setLoadingProfile(false);
-      }
-    })();
-  }, [nostrPubKey]);
-
-  // Navigation logic
+  // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
     const retrieveUser = async (npub) => {
-      let user = await getUser(npub);
-      if (user) {
-        if (user.step === "onboarding") {
-          navigate("/onboarding/" + user.onboardingStep);
+      try {
+        const user = await getUser(npub);
+        if (user) {
+          if (user.step === "onboarding") {
+            navigate("/onboarding/" + user.onboardingStep);
+          } else {
+            navigate("/assistant");
+          }
         } else {
-          navigate("/assistant");
+          localStorage.clear();
+          navigate("/login");
         }
+      } catch (err) {
+        console.error("Error retrieving user:", err);
+        localStorage.clear();
+        navigate("/login");
       }
     };
-    let npub = localStorage.getItem("local_npub");
-    if (npub) {
-      retrieveUser(npub);
+
+    const storedNpub = localStorage.getItem("local_npub");
+    if (storedNpub) {
+      retrieveUser(storedNpub);
     } else {
+      localStorage.clear();
       navigate("/login");
     }
   }, [navigate]);
@@ -108,129 +110,184 @@ function App() {
   const handleSignOut = () => {
     localStorage.removeItem("local_npub");
     localStorage.removeItem("local_nsec");
-    navigate("/");
-    onClose();
+    toast({
+      title: "Signed out successfully.",
+      status: "info",
+      duration: 2000,
+    });
+    navigate("/login");
   };
 
-  const handleProfileSave = async () => {
-    try {
-      await updateUser(nostrPubKey, profile);
-      toast({ title: "Profile updated.", status: "success", duration: 3000 });
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      toast({ title: "Update failed.", status: "error", duration: 3000 });
-    }
-    onProfileClose();
+  const handleCopyPubKey = () => {
+    const pubkey = localStorage.getItem("local_npub") || "";
+    navigator.clipboard.writeText(pubkey);
+    toast({
+      title: "ID copied to clipboard.",
+      status: "success",
+      duration: 2000,
+    });
   };
 
-  const showMenu = ["/onboarding", "/assistant"].some((path) =>
+  const handleCopySecret = () => {
+    const secret = localStorage.getItem("local_nsec") || "";
+    navigator.clipboard.writeText(secret);
+    toast({
+      title: "Secret key copied to clipboard.",
+      status: "success",
+      duration: 2000,
+    });
+  };
+
+  // Only show the header (icons) on onboarding or assistant routes
+  const showHeader = ["/onboarding", "/assistant"].some((path) =>
     location.pathname.startsWith(path)
   );
 
   return (
     <>
-      {showMenu ? (
-        <>
-          {/* Fixed menu button */}
-          <Button
-            position="fixed"
-            top="4"
-            left="4"
-            zIndex="overlay"
-            onClick={onOpen}
-            variant="ghost"
-          >
-            <HamburgerIcon w={6} h={6} />
-          </Button>
-
-          {/* Drawer with menu items */}
-          <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-            <DrawerOverlay />
-            <DrawerContent>
-              <DrawerCloseButton />
-              <DrawerHeader>Menu</DrawerHeader>
-              <DrawerBody>
-                <VStack align="start" spacing={4}>
-                  <ColorModeSwitcher />
-                  <Button variant="ghost" onClick={onProfileOpen}>
-                    Edit Profile
-                  </Button>
-                  <Button variant="ghost" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
-                </VStack>
-              </DrawerBody>
-            </DrawerContent>
-          </Drawer>
-
-          {/* Profile edit modal */}
-          <Modal isOpen={isProfileOpen} onClose={onProfileClose}>
-            <ModalOverlay />
-            <ModalContent>
-              <ModalHeader>Edit Profile</ModalHeader>
-              <ModalCloseButton />
-              <ModalBody>
-                {!loadingProfile && (
-                  <VStack spacing={4}>
-                    <FormControl>
-                      <FormLabel>Goals</FormLabel>
-                      <Textarea
-                        value={profile.goals}
-                        onChange={(e) =>
-                          setProfile({ ...profile, goals: e.target.value })
-                        }
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Responsibilities</FormLabel>
-                      <Textarea
-                        value={profile.responsibilities}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            responsibilities: e.target.value,
-                          })
-                        }
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Diet</FormLabel>
-                      <Input
-                        value={profile.diet}
-                        onChange={(e) =>
-                          setProfile({ ...profile, diet: e.target.value })
-                        }
-                      />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel>Education</FormLabel>
-                      <Input
-                        value={profile.education}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            education: e.target.value,
-                          })
-                        }
-                      />
-                    </FormControl>
-                  </VStack>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                <Button mr={3} onClick={onProfileClose}>
-                  Cancel
-                </Button>
-                <Button colorScheme="blue" onClick={handleProfileSave}>
-                  Save
-                </Button>
-              </ModalFooter>
-            </ModalContent>
-          </Modal>
-        </>
-      ) : (
-        <ColorModeSwitcher />
+      {showHeader && (
+        <Box p={4}>
+          <HStack spacing={3} justify="flex-end">
+            <ColorModeSwitcher />
+            <IconButton
+              aria-label="Copy Pub  Key"
+              icon={<FaIdCard />}
+              onClick={handleCopyPubKey}
+            />
+            <IconButton
+              aria-label="Copy Secret"
+              icon={<FaKey />}
+              onClick={handleCopySecret}
+            />
+            <IconButton
+              aria-label="Network"
+              icon={<FiGlobe />}
+              onClick={onNetworkOpen}
+            />
+            <IconButton
+              aria-label="Install"
+              icon={<FiDownload />}
+              onClick={onInstallOpen}
+            />
+            <IconButton
+              aria-label="Sign out"
+              icon={<GiExitDoor />}
+              onClick={handleSignOut}
+            />
+          </HStack>
+        </Box>
       )}
+
+      {/* Network Modal */}
+      <Modal isOpen={isNetworkOpen} onClose={onNetworkClose} isCentered>
+        <ModalOverlay />
+        <ModalContent textAlign="center">
+          <ModalHeader>Decentralize</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Button
+              onMouseDown={handleCopyPubKey}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleCopyPubKey();
+                }
+              }}
+              mb={6}
+            >
+              🔑 Copy Secret Key
+            </Button>
+            <Divider mb={6} />
+
+            <Flex direction="column" alignItems={"center"}>
+              <ActionButton
+                href={`https://primal.net/p/${localStorage.getItem(
+                  "local_npub"
+                )}`}
+                text="Your Profile"
+              />
+              <ActionButton
+                href="https://primal.net/home"
+                text="Go To Social Wallet"
+              />
+              <ActionButton href="https://otherstuff.app" text="App Store" />
+            </Flex>
+            <Divider my={6} />
+            <Link
+              href="https://primal.net/p/npub14vskcp90k6gwp6sxjs2jwwqpcmahg6wz3h5vzq0yn6crrsq0utts52axlt"
+              isExternal
+              style={{ textDecoration: "underline" }}
+            >
+              Connect With Me
+            </Link>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              onMouseDown={onNetworkClose}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onNetworkClose();
+                }
+              }}
+            >
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isInstallOpen} onClose={onInstallClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Install App</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Flex direction="column" pb={0}>
+              <IoIosMore size={32} />
+              <Text mt={2}>
+                1. Open this page in your browser with the More Options button
+              </Text>
+            </Flex>
+            <Divider my={6} />
+
+            <Flex direction="column" pb={0}>
+              <IoShareOutline size={32} />
+              <Text mt={2}>2. Press the Share button</Text>
+            </Flex>
+            <Divider my={6} />
+
+            <Flex direction="column" pb={0}>
+              <BsPlusSquare size={32} />
+              <Text mt={2}>3. Press the Add To Homescreen button</Text>
+            </Flex>
+            <Divider my={6} />
+
+            <Flex direction="column" pb={0}>
+              <LuBadgeCheck size={32} />
+              <Text mt={2}>
+                4. That's it! You don't need to download the app through an app
+                store because we're using open-source standards called
+                Progressive Web Apps.
+              </Text>
+            </Flex>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              onMouseDown={onInstallClose}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onInstallClose();
+                }
+              }}
+            >
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Routes>
         <Route path="/login" element={<Landing />} />

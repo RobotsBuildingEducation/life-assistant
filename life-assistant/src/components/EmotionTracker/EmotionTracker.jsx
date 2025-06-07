@@ -7,6 +7,10 @@ import {
   Text,
   Textarea,
   Spinner,
+  Badge,
+  Wrap,
+  WrapItem,
+  CloseButton,
 } from "@chakra-ui/react";
 import {
   collection,
@@ -26,52 +30,78 @@ import {
 } from "./EmotionTracker.compute";
 import { highEnergyFeelings, lowEnergyFeelings } from "./EmotionTracker.data";
 
+import { keyframes } from "@emotion/react";
+
+const movingFace = keyframes`
+   0%, 100% {
+     border-radius: 10px 50px 50px 10px;
+     transform: translateY(0) rotate(0deg);
+   }
+   25% {
+     border-radius: 50px 10px 10px 50px;
+     transform: translateY(-5px) rotate(-2deg);
+   }
+   50% {
+     border-radius: 10px 50px 50px 10px;
+     transform: translateY(0) rotate(0deg);
+   }
+   75% {
+     border-radius: 50px 10px 10px 50px;
+     transform: translateY(5px) rotate(2deg);
+   }
+ `;
+
 // Initialize AI model
 const aiModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
-  //   generationConfig: {
-  //     responseMimeType: "application/json",
-  //     responseSchema,
-  //   },
 });
 
-/**
- * Inline EmotionTracker component (not a modal)
- * Props:
- * - visible: boolean to show/hide tracker
- */
 export default function EmotionTracker({ visible }) {
   const npub = localStorage.getItem("local_npub");
-  const [emotions, setEmotions] = useState([]);
-  const [loadingEmotions, setLoadingEmotions] = useState(true);
-  const [selected, setSelected] = useState(null);
+  const [savedEntries, setSavedEntries] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
+
+  // multi-select state
+  const [selected, setSelected] = useState([]);
   const [note, setNote] = useState("");
   const [advice, setAdvice] = useState("");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [summary, setSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
 
-  // Load existing emotions
+  // load saved entries from Firestore
   useEffect(() => {
     if (!visible) return;
     (async () => {
-      setLoadingEmotions(true);
+      setLoadingSaved(true);
       const ref = collection(database, "users", npub, "emotions");
       const q = query(ref, orderBy("timestamp"));
       const snap = await getDocs(q);
-
-      setEmotions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-
-      setLoadingEmotions(false);
+      setSavedEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoadingSaved(false);
     })();
   }, [npub, visible]);
 
-  const selectEmotion = (e) => {
-    setSelected(formatEmotionItem(e, Date.now(), "timestamp"));
+  // toggle selection on/off
+  const toggleEmotion = (e) => {
+    setSelected((current) => {
+      const exists = current.find((item) => item.label === e.label);
+      if (exists) {
+        return current.filter((item) => item.label !== e.label);
+      } else {
+        return [...current, e];
+      }
+    });
     setAdvice("");
     setNote("");
   };
 
+  // remove a selected tag
+  const removeEmotion = (e) => {
+    setSelected((current) => current.filter((item) => item.label !== e.label));
+  };
+
+  // generate AI insight
   const generateInsight = async () => {
     setLoadingAdvice(true);
     setAdvice("");
@@ -88,24 +118,30 @@ export default function EmotionTracker({ visible }) {
     setLoadingAdvice(false);
   };
 
-  const saveEmotion = async () => {
-    const withAi = formatEmotionItem(selected, advice, "ai");
-    const withNote = formatEmotionItem(withAi, note, "note");
+  // save one entry containing all selected emotions
+  const saveEntry = async () => {
     const ref = collection(database, "users", npub, "emotions");
-    await addDoc(ref, { ...withNote, timestamp: serverTimestamp() });
-    // reload list
-    const q = query(ref, orderBy("timestamp"));
-    const snap = await getDocs(q);
-    setEmotions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    setSelected(null);
+    const payload = {
+      emotions: selected,
+      note,
+      ai: advice,
+      timestamp: serverTimestamp(),
+    };
+    await addDoc(ref, payload);
+    // reload entries
+    const snap = await getDocs(query(ref, orderBy("timestamp")));
+    setSavedEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    // reset form
+    setSelected([]);
     setNote("");
     setAdvice("");
   };
 
+  // summarize journey
   const generateSummary = async () => {
     setLoadingSummary(true);
     setSummary("");
-    const prompt = emotionSummarizer(JSON.stringify(emotions));
+    const prompt = emotionSummarizer(JSON.stringify(savedEntries));
     let raw = "";
     const stream = await aiModel.generateContentStream(prompt);
     for await (const chunk of stream.stream) {
@@ -117,7 +153,6 @@ export default function EmotionTracker({ visible }) {
 
   if (!visible) return null;
 
-  console.log("emotions", emotions);
   return (
     <Box p={4} borderWidth="1px" borderRadius="md" mb={6}>
       <VStack align="stretch" spacing={4}>
@@ -125,69 +160,114 @@ export default function EmotionTracker({ visible }) {
           Emotion Tracker
         </Text>
 
-        {/* Emotion selection */}
-        {loadingEmotions ? (
-          <Spinner />
-        ) : (
-          <Box wrap="wrap" spacing={2}>
-            <Text fontWeight={"bold"}>High Energy</Text>
+        <Text fontSize="sm">
+          Select all the emotions you're feeling, then write a note and generate
+          an insight that you can save and track for later.
+        </Text>
 
-            {highEnergyFeelings.map((e) => (
+        {/* Emotion selection */}
+        <Box wrap="wrap" spacing={2}>
+          <Text fontWeight="bold">High Energy</Text>
+          {highEnergyFeelings.map((e) => {
+            const isSelected = selected.some((sel) => sel.label === e.label);
+            return (
               <Button
-                m={2}
-                width="150px"
-                height="150px"
                 key={e.label}
+                m={2}
+                w="125px"
+                h="125px"
                 bg={e.color}
                 _hover={{ bg: e.colorHover }}
-                onClick={() => selectEmotion(e)}
+                borderWidth={isSelected ? "4px" : "0"}
+                borderColor="pink"
+                onClick={() => toggleEmotion(e)}
+                animation={
+                  isSelected
+                    ? `${movingFace} 1.75s ease-in-out infinite`
+                    : undefined
+                }
               >
                 {e.emoji}
-                <br /> {e.label}
-              </Button>
-            ))}
-            <br />
-            <br />
-            <Text fontWeight={"bold"}> Low Energy</Text>
-
-            {lowEnergyFeelings.map((e) => (
-              <Button
-                m={2}
-                width="150px"
-                height="150px"
-                key={e.label}
-                bg={e.color}
-                _hover={{ bg: e.colorHover }}
-                onClick={() => selectEmotion(e)}
-              >
-                {e.emoji} <br />
+                <br />
                 {e.label}
               </Button>
-            ))}
-          </Box>
-        )}
+            );
+          })}
 
-        {/* Add note and get insight */}
-        {selected && (
+          <Text fontWeight="bold" mt={4}>
+            Low Energy
+          </Text>
+          {lowEnergyFeelings.map((e) => {
+            const isSelected = selected.some((sel) => sel.label === e.label);
+
+            return (
+              <Button
+                key={e.label}
+                m={2}
+                w="125px"
+                h="125px"
+                bg={e.color}
+                _hover={{ bg: e.colorHover }}
+                // borderWidth={
+                //   selected.some((sel) => sel.label === e.label) ? "4px" : "0"
+                // }
+                borderWidth={isSelected ? "4px" : "0"}
+                borderColor="cyan"
+                onClick={() => toggleEmotion(e)}
+                animation={
+                  isSelected
+                    ? `${movingFace} 3.5s ease-in-out infinite`
+                    : undefined
+                }
+              >
+                {e.emoji}
+                <br />
+                {e.label}
+              </Button>
+            );
+          })}
+        </Box>
+
+        {/* Selected tags with remove button */}
+        {selected.length > 0 && (
           <VStack align="stretch" spacing={2}>
-            <Text>
-              <strong>Selected:</strong> {selected.emoji} {selected.label}
-            </Text>
+            <Text fontWeight="semibold">Selected:</Text>
+            <Wrap>
+              {selected.map((e) => (
+                <WrapItem key={e.label}>
+                  <Badge
+                    px={2}
+                    py={1}
+                    borderRadius="md"
+                    bg={e.color}
+                    _hover={{ bg: e.colorHover }}
+                    color="white"
+                  >
+                    <HStack spacing={1}>
+                      <Text>
+                        {e.emoji} {e.label}
+                      </Text>
+                      <CloseButton size="sm" onClick={() => removeEmotion(e)} />
+                    </HStack>
+                  </Badge>
+                </WrapItem>
+              ))}
+            </Wrap>
             <Textarea
               placeholder="Add a note..."
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(evt) => setNote(evt.target.value)}
             />
             <Button onClick={generateInsight} isLoading={loadingAdvice}>
               💭 Generate Insight
             </Button>
-            {advice ? <Box>{advice}</Box> : null}
+            {advice && <Box whiteSpace="pre-wrap">{advice}</Box>}
             <Button
               colorScheme="blue"
-              onClick={saveEmotion}
+              onClick={saveEntry}
               isDisabled={!advice && !note}
             >
-              Save Emotion
+              Save Entry
             </Button>
           </VStack>
         )}
@@ -208,38 +288,51 @@ export default function EmotionTracker({ visible }) {
               🔍 Summarize
             </Button>
           </HStack>
-          {loadingSummary ? <Spinner /> : summary ? <Box>{summary}</Box> : null}
+          {loadingSummary ? (
+            <Spinner />
+          ) : (
+            summary && <Box whiteSpace="pre-wrap">{summary}</Box>
+          )}
         </VStack>
 
-        {emotions
-          .map((em) => (
-            <Box key={em.id} p={3} borderWidth="1px" borderRadius="md">
-              <HStack justify="space-between">
-                <HStack spacing={2}>
-                  <Text fontSize="xl">{em.emoji}</Text>
-                  <Text fontSize="md" fontWeight="semibold">
-                    {em.label}
-                  </Text>
-                </HStack>
-                {em.timestamp?.toDate && (
-                  <Text fontSize="sm" color="gray.500">
-                    {em.timestamp.toDate().toLocaleString()}
+        {/* Saved entries log */}
+        {loadingSaved ? (
+          <Spinner />
+        ) : (
+          savedEntries
+            .slice()
+            .reverse()
+            .map((entry) => (
+              <Box key={entry.id} p={3} borderWidth="1px" borderRadius="md">
+                <Wrap spacing={1} mb={2}>
+                  {entry.emotions.map((e) => (
+                    <WrapItem key={e.label}>
+                      <Badge
+                        px={2}
+                        py={1}
+                        borderRadius="md"
+                        bg={e.color}
+                        color="white"
+                      >
+                        {e.emoji} {e.label}
+                      </Badge>
+                    </WrapItem>
+                  ))}
+                </Wrap>
+                {entry.note && (
+                  <Text fontStyle="italic" mb={2}>
+                    {entry.note}
                   </Text>
                 )}
-              </HStack>
-              {em.note && (
-                <Text mt={2} fontStyle="italic">
-                  {em.note}
-                </Text>
-              )}
-              {em.ai && (
-                <Box mt={2} p={2} borderRadius="md">
-                  {em.ai}
-                </Box>
-              )}
-            </Box>
-          ))
-          .reverse()}
+                {entry.ai && <Box mb={2}>{entry.ai}</Box>}
+                {entry.timestamp?.toDate && (
+                  <Text fontSize="sm" color="gray.500">
+                    {entry.timestamp.toDate().toLocaleString()}
+                  </Text>
+                )}
+              </Box>
+            ))
+        )}
       </VStack>
     </Box>
   );

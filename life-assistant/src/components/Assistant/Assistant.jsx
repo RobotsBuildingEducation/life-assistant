@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   Box,
   Button,
   Heading,
-  Text,
-  Stack,
-  Card,
-  CardHeader,
-  CardBody,
   Spinner,
-  Select,
-  VStack,
-  HStack,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Text,
 } from "@chakra-ui/react";
 import { getGenerativeModel } from "@firebase/vertexai";
-import { vertexAI, Schema, database } from "../../firebaseResources/config";
+import { vertexAI, database, Schema } from "../../firebaseResources/config";
 import { getUser } from "../../firebaseResources/store";
 import {
   collection,
@@ -26,10 +24,14 @@ import {
 } from "firebase/firestore";
 import EmotionTracker from "../EmotionTracker/EmotionTracker";
 import SleepCycleCalculator from "../SleepCycleCalculator/SleepCycleCalculator";
-import { PlanResult } from "../PlanResult/PlanResult";
 import MealIdeas from "../MealIdeas/MealIdeas";
+import BudgetTool from "../BudgetTool/BudgetTool";
+import { RelationshipCounselor } from "../RelatonshipCounselor/RelationshipCounselor";
+import { ChevronDownIcon } from "@chakra-ui/icons";
+import { PlanResult } from "../PlanResult/PlanResult";
+import { markdownTheme } from "../../theme";
+import ChoreManager from "../ChoreManager/ChoreManager";
 
-// JSON schema for daily strategic helper
 const responseSchema = Schema.object({
   properties: {
     recipes: Schema.array({
@@ -48,12 +50,16 @@ const responseSchema = Schema.object({
   required: ["recipes", "bestSuggestion"],
 });
 
-const model = getGenerativeModel(vertexAI, {
+const mealModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
   generationConfig: {
     responseMimeType: "application/json",
     responseSchema,
   },
+});
+
+const planModel = getGenerativeModel(vertexAI, {
+  model: "gemini-2.0-flash",
 });
 
 export const Assistant = () => {
@@ -62,20 +68,24 @@ export const Assistant = () => {
   const [loadingMemories, setLoadingMemories] = useState(true);
   const [memories, setMemories] = useState([]);
 
+  const [planText, setPlanText] = useState("");
+  const [bestSuggestion, setBestSuggestion] = useState("");
   const [loadingPlan, setLoadingPlan] = useState(false);
+
+  const [recipes, setRecipes] = useState([]);
   const [loadingMeals, setLoadingMeals] = useState(false);
 
-  const [bestSuggestion, setBestSuggestion] = useState("");
-  const [recipes, setRecipes] = useState([]);
-
-  // Sleep UI state
   const [showSleepUI, setShowSleepUI] = useState(false);
   const [sleepHour, setSleepHour] = useState("10");
   const [sleepMinute, setSleepMinute] = useState("00");
   const [sleepAmPm, setSleepAmPm] = useState("PM");
   const [cycles, setCycles] = useState([]);
 
+  const [showPlanUI, setShowPlanUI] = useState(false);
   const [showEmotionUI, setShowEmotionUI] = useState(false);
+  const [showBudgetUI, setShowBudgetUI] = useState(false);
+  const [showRelationshipUI, setShowRelationshipUI] = useState(false);
+  const [showChoreUI, setShowChoreUI] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -103,10 +113,9 @@ export const Assistant = () => {
     })();
   }, [userDoc]);
 
-  // Calculate cycles based on a start Date
   const calculateCycles = (startDate) => {
     const newCycles = [];
-    const onsetOffset = 14 * 60000; // 14 minutes to fall asleep
+    const onsetOffset = 14 * 60000;
     for (let i = 1; i <= 6; i++) {
       const cycleDate = new Date(
         startDate.getTime() + onsetOffset + 90 * 60000 * i
@@ -118,7 +127,6 @@ export const Assistant = () => {
     setCycles(newCycles);
   };
 
-  // Auto-calculate when selects change
   useEffect(() => {
     const h = parseInt(sleepHour, 10) % 12;
     let hour24 = h + (sleepAmPm === "PM" ? 12 : 0);
@@ -147,33 +155,42 @@ export const Assistant = () => {
   const generatePlan = async () => {
     setShowSleepUI(false);
     setShowEmotionUI(false);
+    setShowBudgetUI(false);
+    setShowRelationshipUI(false);
+    setShowChoreUI(false);
     setRecipes([]);
+    setPlanText("");
+    setBestSuggestion("");
     if (!userDoc) return;
     setLoadingPlan(true);
-    setBestSuggestion("");
+
     try {
       const dayNumber = memories.length + 1;
       const memoryContext = memories
         .map((m) => `Day ${m.dayNumber}: ${m.suggestion}`)
         .join("\n");
       const prompt = `
-    Day ${dayNumber}
-    Previous progress:
-    ${memoryContext}
+Day ${dayNumber}
+Previous progress:
+${memoryContext}
 
-    User Goals: "${userDoc.goals}";
-    Responsibilities: "${userDoc.responsibilities}";
-    Diet: "${userDoc.diet}";
-    Education: "${userDoc.education}".
+User Goals: "${userDoc.goals}";
+Responsibilities: "${userDoc.responsibilities}";
+Diet: "${userDoc.diet}";
+Education: "${userDoc.education}".
 
-    Return JSON with a single key "bestSuggestion" (a concise strategic move for Day ${dayNumber}).`;
-      let raw = "";
-      const stream = await model.generateContentStream(prompt);
+Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep it brief and format in markdown using ordered lists.`;
+
+      const stream = await planModel.generateContentStream(prompt);
+      let accumulated = "";
       for await (const chunk of stream.stream) {
-        raw += chunk.text();
+        const textChunk = chunk.text();
+        accumulated += textChunk;
+        setPlanText(accumulated);
       }
-      const { bestSuggestion: bs } = JSON.parse(raw);
-      setBestSuggestion(bs);
+
+      const finalSuggestion = accumulated;
+      setBestSuggestion(finalSuggestion);
 
       const memRef = collection(
         database,
@@ -183,44 +200,55 @@ export const Assistant = () => {
       );
       await addDoc(memRef, {
         dayNumber,
-        suggestion: bs,
+        suggestion: finalSuggestion,
         recipes: [],
         timestamp: serverTimestamp(),
       });
       setMemories((prev) => [
         ...prev,
-        { dayNumber, suggestion: bs, recipes: [] },
+        { id: undefined, dayNumber, suggestion: finalSuggestion, recipes: [] },
       ]);
     } catch (err) {
       console.error("Plan error:", err);
     }
+
     setLoadingPlan(false);
   };
 
   const generateMeals = async () => {
+    setShowPlanUI(false);
     setShowSleepUI(false);
     setShowEmotionUI(false);
+    setShowBudgetUI(false);
+    setShowRelationshipUI(false);
+    setShowChoreUI(false);
+    setPlanText("");
     setBestSuggestion("");
     if (!userDoc) return;
     setLoadingMeals(true);
     setRecipes([]);
+
     try {
       const prompt = `
-    Generate a JSON with a single key "recipes": an array of 5 meal ideas. Each item should include:
-    - name
-    - description
-    - ingredients
-    - nutritionalAnalysis (vitamin, macro, health gains, and how it helps health).`;
+
+The user has included some data about their diet: "${userDoc.diet}";
+Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include:
+- name
+- description
+- ingredients
+- nutritionalAnalysis (vitamins, macros, health benefits).`;
+
       let raw = "";
-      const stream = await model.generateContentStream(prompt);
+      const stream = await mealModel.generateContentStream(prompt);
       for await (const chunk of stream.stream) {
         raw += chunk.text();
       }
-      const { recipes: rs } = JSON.parse(raw);
-      setRecipes(rs);
+      const parsed = JSON.parse(raw);
+      setRecipes(parsed.recipes);
     } catch (err) {
       console.error("Meals error:", err);
     }
+
     setLoadingMeals(false);
   };
 
@@ -234,55 +262,132 @@ export const Assistant = () => {
 
   return (
     <Box p={4} maxW="600px" mx="auto" mt={24}>
-      <Heading mb={4}>Personal Assistant (Day {memories.length + 1})</Heading>
-      <HStack flexWrap="wrap" spacing={2} mb={6}>
-        <Button
-          onClick={generatePlan}
-          isLoading={loadingPlan}
-          p={{ base: 4, md: 8 }}
-        >
-          Create Daily Plan
-        </Button>
+      <Heading mb={4}>
+        Personal Assistant{" "}
+        {memories.length > 0 && (
+          <Text fontSize="sm">Day {memories.length}</Text>
+        )}
+      </Heading>
 
-        <Button
-          onClick={generateMeals}
-          isLoading={loadingMeals}
-          p={{ base: 4, md: 8 }}
-        >
-          Generate Meals
-        </Button>
+      <Menu mb={6}>
+        <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
+          Select Action
+        </MenuButton>
+        <br />
+        <br />
+        <MenuList>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(true);
+              setShowBudgetUI(false);
+              setShowSleepUI(false);
+              setShowEmotionUI(false);
+              setShowRelationshipUI(false);
+              setShowChoreUI(false);
+              setRecipes([]);
+            }}
+            isDisabled={loadingPlan}
+          >
+            Create Daily Action
+          </MenuItem>
+          <MenuItem onClick={generateMeals} isDisabled={loadingMeals}>
+            Generate Meals
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(false);
+              setShowBudgetUI(true);
+              setShowSleepUI(false);
+              setShowEmotionUI(false);
+              setShowRelationshipUI(false);
+              setShowChoreUI(false);
+              setPlanText("");
+              setBestSuggestion("");
+              setRecipes([]);
+            }}
+          >
+            Financial Planner
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(false);
+              setShowSleepUI(true);
+              setShowEmotionUI(false);
+              setShowBudgetUI(false);
+              setShowRelationshipUI(false);
+              setShowChoreUI(false);
+              setPlanText("");
+              setBestSuggestion("");
+              setRecipes([]);
+            }}
+          >
+            Sleep Cycles
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(false);
+              setShowEmotionUI(true);
+              setShowSleepUI(false);
+              setShowBudgetUI(false);
+              setShowRelationshipUI(false);
+              setShowChoreUI(false);
+              setPlanText("");
+              setBestSuggestion("");
+              setRecipes([]);
+            }}
+          >
+            Emotion Tracker
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(false);
+              setShowRelationshipUI(true);
+              setShowBudgetUI(false);
+              setShowSleepUI(false);
+              setShowEmotionUI(false);
+              setShowChoreUI(false);
+              setPlanText("");
+              setBestSuggestion("");
+              setRecipes([]);
+            }}
+          >
+            Relationship Counselor
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setShowPlanUI(false);
+              setShowSleepUI(false);
+              setShowEmotionUI(false);
+              setShowBudgetUI(false);
+              setShowRelationshipUI(false);
+              setShowChoreUI(true);
+              setPlanText("");
+              setBestSuggestion("");
+              setRecipes([]);
+            }}
+          >
+            Chore Manager
+          </MenuItem>
+        </MenuList>
+      </Menu>
 
-        <Button
-          onClick={() => {
-            setShowSleepUI(true);
-            setBestSuggestion("");
-            setShowEmotionUI(false);
-            setRecipes([]);
-          }}
-          p={{ base: 4, md: 8 }}
-        >
-          Sleep Cycles
-        </Button>
-
-        <Button
-          onClick={() => {
-            setShowEmotionUI(true);
-            setBestSuggestion("");
-            setShowSleepUI(false);
-            setRecipes([]);
-          }}
-          p={{ base: 4, md: 8 }}
-        >
-          Emotion Tracker
-        </Button>
-      </HStack>
-
-      {showEmotionUI ? <EmotionTracker visible={showEmotionUI} /> : null}
-      {bestSuggestion && (
-        <PlanResult bestSuggestion={bestSuggestion} memories={memories} />
+      {loadingMeals && (
+        <Box p={4} textAlign="center">
+          <Spinner />
+        </Box>
       )}
 
-      {/* Sleep Cycle UI */}
+      {showPlanUI && (
+        <PlanResult
+          userDoc={userDoc}
+          memories={memories}
+          onGeneratePlan={generatePlan}
+          bestSuggestion={bestSuggestion}
+          planText={planText}
+          loadingPlan={loadingPlan}
+        />
+      )}
+
       {showSleepUI && (
         <SleepCycleCalculator
           sleepHour={sleepHour}
@@ -296,7 +401,17 @@ export const Assistant = () => {
         />
       )}
 
+      {showEmotionUI && <EmotionTracker visible={showEmotionUI} />}
+
+      {showRelationshipUI && (
+        <RelationshipCounselor onClose={() => setShowRelationshipUI(false)} />
+      )}
+
+      {showChoreUI && <ChoreManager userDoc={userDoc} />}
+
       {recipes.length > 0 && <MealIdeas recipes={recipes} />}
+
+      {showBudgetUI && <BudgetTool />}
     </Box>
   );
 };
