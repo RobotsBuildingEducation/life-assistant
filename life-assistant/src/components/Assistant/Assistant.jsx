@@ -277,6 +277,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
         <br />
         <MenuList>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(true);
               setShowBudgetUI(false);
@@ -290,10 +291,11 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
           >
             Create Daily Action
           </MenuItem>
-          <MenuItem onClick={generateMeals} isDisabled={loadingMeals}>
+          <MenuItem onClick={generateMeals} isDisabled={loadingMeals} p={4}>
             Generate Meals
           </MenuItem>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(false);
               setShowBudgetUI(true);
@@ -309,6 +311,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
             Financial Planner
           </MenuItem>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(false);
               setShowSleepUI(true);
@@ -324,6 +327,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
             Sleep Cycles
           </MenuItem>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(false);
               setShowEmotionUI(true);
@@ -339,6 +343,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
             Emotion Tracker
           </MenuItem>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(false);
               setShowRelationshipUI(true);
@@ -354,6 +359,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
             Relationship Counselor
           </MenuItem>
           <MenuItem
+            p={4}
             onClick={() => {
               setShowPlanUI(false);
               setShowSleepUI(false);
