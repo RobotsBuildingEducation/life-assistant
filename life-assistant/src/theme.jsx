@@ -42,11 +42,18 @@ export const theme = extendTheme({
     global: {
       body: {
         bg: "linear-gradient(130deg, #e96443, #904e95, #3494e6, #6dd5ed)",
+        color: "gray.800",
         backgroundSize: "800% 800%",
         animation: `${gradientAnimation} 40s ease infinite`,
+        _dark: {
+          bg: "linear-gradient(130deg, #0f0c29, #302b63, #24243e)",
+          color: "gray.200",
+        },
       },
       ".chakra-box": glassBox,
       ".chakra-button": glassBox,
+      ".chakra-modal__content": glassBox,
+      ".chakra-menu__list": glassBox,
     },
   },
   components: {
@@ -57,6 +64,16 @@ export const theme = extendTheme({
       },
       defaultProps: {
         variant: "glass",
+      },
+    },
+    Modal: {
+      baseStyle: {
+        dialog: glassBox,
+      },
+    },
+    Menu: {
+      baseStyle: {
+        list: glassBox,
       },
     },
   },
