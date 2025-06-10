@@ -11,6 +11,7 @@ import {
   MenuItem,
   Text,
 } from "@chakra-ui/react";
+import { glassStyles } from "../../theme";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database, Schema } from "../../firebaseResources/config";
 import { getUser } from "../../firebaseResources/store";
@@ -261,7 +262,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
   }
 
   return (
-    <Box p={4} maxW="600px" mx="auto" mt={24}>
+    <Box p={8} maxW="600px" mx="auto" mt={24} sx={glassStyles}>
       <Heading mb={4}>
         Personal Assistant{" "}
         {memories.length > 0 && (
