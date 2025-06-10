@@ -9,7 +9,6 @@ export const ColorModeSwitcher = () => {
       size="md"
       fontSize="lg"
       aria-label={`Switch to ${colorMode === "light" ? "dark" : "light"} mode`}
-      variant="ghost"
       onClick={toggleColorMode}
       icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
     />

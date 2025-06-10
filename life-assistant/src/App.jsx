@@ -43,12 +43,10 @@ const ActionButton = ({ href, text, userLanguage }) => (
     href={href}
     mt={2}
     mb={4}
-    variant={"outline"}
     target="_blank"
     width="45%"
     margin={2}
     height={100}
-    boxShadow="0.5px 0.5px 1px 0px rgba(0,0,0,0.75)"
     fontSize={"small"}
   >
     {text}
@@ -223,7 +221,6 @@ function App() {
 
           <ModalFooter>
             <Button
-              variant="ghost"
               onMouseDown={onNetworkClose}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -275,7 +272,6 @@ function App() {
 
           <ModalFooter>
             <Button
-              variant="ghost"
               onMouseDown={onInstallClose}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {

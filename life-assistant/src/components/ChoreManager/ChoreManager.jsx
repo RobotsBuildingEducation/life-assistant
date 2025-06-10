@@ -287,11 +287,7 @@ export default function ChoreManager() {
       </Heading>
 
       <HStack mb={6} spacing={6} flexWrap="wrap">
-        <Button
-          colorScheme="teal"
-          onClick={generateChores}
-          isLoading={generating}
-        >
+        <Button onClick={generateChores} isLoading={generating}>
           Generate Chores
         </Button>
 
@@ -316,11 +312,7 @@ export default function ChoreManager() {
           </NumberInput>
         </HStack>
 
-        <Button
-          variant="outline"
-          onClick={onOpen}
-          isDisabled={completedItems.length === 0}
-        >
+        <Button onClick={onOpen} isDisabled={completedItems.length === 0}>
           View Completed ({completedItems.length})
         </Button>
       </HStack>

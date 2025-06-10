@@ -246,7 +246,6 @@ const BudgetTool = () => {
         <Button
           onClick={generateSuggestions}
           isLoading={loading}
-          colorScheme="teal"
           isDisabled={!budgetData.financialGoals || activeFields.length === 0}
         >
           Summarize Suggestions
@@ -274,7 +273,6 @@ const BudgetTool = () => {
               <Button
                 key={entry.id}
                 size="sm"
-                variant="outline"
                 onClick={() => setSelectedMemory(entry)}
                 padding={12}
               >

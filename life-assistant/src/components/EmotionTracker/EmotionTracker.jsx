@@ -262,11 +262,7 @@ export default function EmotionTracker({ visible }) {
               💭 Generate Insight
             </Button>
             {advice && <Box whiteSpace="pre-wrap">{advice}</Box>}
-            <Button
-              colorScheme="blue"
-              onClick={saveEntry}
-              isDisabled={!advice && !note}
-            >
+            <Button onClick={saveEntry} isDisabled={!advice && !note}>
               Save Entry
             </Button>
           </VStack>
