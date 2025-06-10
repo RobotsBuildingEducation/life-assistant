@@ -21,27 +21,29 @@ const gradientAnimation = keyframes`
 `;
 
 const glassBox = {
-  backdropFilter: "blur(10px) saturate(180%)",
-  WebkitBackdropFilter: "blur(10px) saturate(180%)",
-  backgroundColor: "rgba(255, 255, 255, 0.4)",
-  border: "1px solid rgba(255,255,255,0.3)",
+  backdropFilter: "blur(20px) saturate(200%)",
+  WebkitBackdropFilter: "blur(20px) saturate(200%)",
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  border: "1px solid rgba(255,255,255,0.4)",
   borderRadius: "1rem",
-  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+  boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
   transition: "background-color 0.3s ease",
   _dark: {
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.2)",
     border: "1px solid rgba(255,255,255,0.2)",
   },
 };
+
+export const glassStyles = glassBox;
 
 export const theme = extendTheme({
   config,
   styles: {
     global: {
       body: {
-        bg: "linear-gradient(120deg, #f6f9fc, #e9f0ff, #f6f9fc)",
-        backgroundSize: "400% 400%",
-        animation: `${gradientAnimation} 30s ease infinite`,
+        bg: "linear-gradient(130deg, #e96443, #904e95, #3494e6, #6dd5ed)",
+        backgroundSize: "800% 800%",
+        animation: `${gradientAnimation} 20s ease infinite`,
       },
       ".chakra-box": glassBox,
     },

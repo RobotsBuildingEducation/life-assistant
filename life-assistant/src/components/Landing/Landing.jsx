@@ -11,6 +11,7 @@ import {
   Button,
   Text,
 } from "@chakra-ui/react";
+import { glassStyles } from "../../theme";
 
 import { useDecentralizedIdentity } from "../../hooks/useDecentralizedIdentity";
 import { createUser, getUser } from "../../firebaseResources/store";
@@ -53,7 +54,7 @@ export const Landing = () => {
 
   return (
     <>
-      <Box as="main" p={4} maxW="md" mx="auto" mt={24}>
+      <Box as="main" p={8} maxW="md" mx="auto" mt={24} sx={glassStyles}>
         <VStack spacing={6} align="stretch">
           <Heading as="h2" size="lg" textAlign="center">
             Life Assistant
