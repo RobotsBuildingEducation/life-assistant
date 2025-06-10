@@ -70,13 +70,10 @@ export const Landing = () => {
           </FormControl>
 
           <Stack direction={{ base: "column", sm: "row" }} spacing={4}>
-            <Button
-              colorScheme="teal"
-              onClick={() => generateNostrKeys(authField)}
-            >
+            <Button onClick={() => generateNostrKeys(authField)}>
               Create Account
             </Button>
-            <Button variant="outline" onClick={() => auth(authField)}>
+            <Button onClick={() => auth(authField)}>
               Sign in with secret key
             </Button>
           </Stack>

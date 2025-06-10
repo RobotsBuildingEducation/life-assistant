@@ -98,25 +98,19 @@ export const PlanResult = ({
             }
           />
         </FormControl>
-        <Button
-          colorScheme="blue"
-          onClick={handleSaveProfile}
-          isLoading={savingProfile}
-        >
+        <Button onClick={handleSaveProfile} isLoading={savingProfile}>
           Save Profile
         </Button>
       </VStack>
 
       <VStack align="start" spacing={4} mb={6}>
         <Button
-          colorScheme="green"
           onClick={() => {
             if (typeof onGeneratePlan === "function") {
               onGeneratePlan();
             }
           }}
-          isLoading={loadingPlan}
-        >
+          isLoading={loadingPlan}>
           Generate Plan
         </Button>
       </VStack>

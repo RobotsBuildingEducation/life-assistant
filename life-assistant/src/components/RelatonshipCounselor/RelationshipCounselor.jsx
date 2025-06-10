@@ -175,7 +175,6 @@ export const RelationshipCounselor = ({ onClose }) => {
         <br />
         <br />
         <Button
-          colorScheme="teal"
           onClick={handleAnalyze}
           isLoading={isAnalyzing}
           disabled={selectedFiles.length === 0 || isAnalyzing}

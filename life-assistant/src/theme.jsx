@@ -43,9 +43,21 @@ export const theme = extendTheme({
       body: {
         bg: "linear-gradient(130deg, #e96443, #904e95, #3494e6, #6dd5ed)",
         backgroundSize: "800% 800%",
-        animation: `${gradientAnimation} 20s ease infinite`,
+        animation: `${gradientAnimation} 40s ease infinite`,
       },
       ".chakra-box": glassBox,
+      ".chakra-button": glassBox,
+    },
+  },
+  components: {
+    Button: {
+      baseStyle: glassBox,
+      variants: {
+        glass: glassBox,
+      },
+      defaultProps: {
+        variant: "glass",
+      },
     },
   },
 });
