@@ -45,13 +45,13 @@ const darkParticles = `
 const glassBox = {
   backdropFilter: "blur(20px) saturate(30%)",
   WebkitBackdropFilter: "blur(20px) saturate(30%)",
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  backgroundColor: "rgba(255, 255, 255, 0.08)",
   border: "1px solid rgba(255,255,255,0.3)",
   borderRadius: "1rem",
   boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
   transition: "background-color 0.3s ease, backdrop-filter 0.3s ease",
   _dark: {
-    backgroundColor: "rgba(0,0,0,0.1)",
+    backgroundColor: "rgba(0,0,0,0.08)",
     border: "1px solid rgba(255,255,255,0.15)",
   },
 };
@@ -59,6 +59,11 @@ const glassBox = {
 // Interactive variation: animate blur and background gradient on hover
 const interactiveGlass = {
   ...glassBox,
+  backgroundColor: "rgba(255,255,255,0.05)",
+  _dark: {
+    ...glassBox._dark,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
   transition:
     "transform 0.2s ease, backdrop-filter 0.3s ease, background-color 0.3s ease",
   _hover: {
@@ -72,6 +77,18 @@ const interactiveGlass = {
     transform: "scale(0.97)",
     backdropFilter: "blur(25px) saturate(35%)",
     WebkitBackdropFilter: "blur(25px) saturate(35%)",
+  },
+};
+
+// Stronger gaussian blur for overlay surfaces like modals and menus
+const surfaceGlass = {
+  ...glassBox,
+  backdropFilter: "blur(40px)",
+  WebkitBackdropFilter: "blur(40px)",
+  backgroundColor: "rgba(255,255,255,0.2)",
+  _dark: {
+    ...glassBox._dark,
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
 };
 
@@ -110,8 +127,8 @@ export const theme = extendTheme({
       ".chakra-button": interactiveGlass,
       ".chakra-input": glassBox,
       ".chakra-textarea": glassBox,
-      ".chakra-modal__content": glassBox,
-      ".chakra-menu__list": glassBox,
+      ".chakra-modal__content": surfaceGlass,
+      ".chakra-menu__list": surfaceGlass,
       ".chakra-menu__item": interactiveGlass,
     }),
   },
@@ -121,8 +138,8 @@ export const theme = extendTheme({
       variants: { glass: interactiveGlass },
       defaultProps: { variant: "glass" },
     },
-    Modal: { baseStyle: { dialog: glassBox } },
-    Menu: { baseStyle: { list: glassBox } },
+    Modal: { baseStyle: { dialog: surfaceGlass } },
+    Menu: { baseStyle: { list: surfaceGlass } },
     Input: { baseStyle: { field: glassBox } },
     Textarea: { baseStyle: { textarea: glassBox } },
   },
