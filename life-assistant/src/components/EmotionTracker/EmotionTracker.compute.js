@@ -11,6 +11,7 @@ export let customInstructions = ({ emotionNote, selectedEmotion }) => {
 
 Additionally, include some suggestions to maintain improvements going forward. Do not include any markdown editing, only respond as if you're replying in a message.
     `;
+  ``;
 
   return instructions;
 };

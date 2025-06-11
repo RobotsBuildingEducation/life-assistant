@@ -110,7 +110,8 @@ export const PlanResult = ({
               onGeneratePlan();
             }
           }}
-          isLoading={loadingPlan}>
+          isLoading={loadingPlan}
+        >
           Generate Plan
         </Button>
       </VStack>
