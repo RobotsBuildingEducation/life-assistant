@@ -63,7 +63,7 @@ body::after {
 
 /* Twinkle and scanline animations were removed to avoid strobing */
 
-.starfield {
+/* .starfield {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -84,19 +84,18 @@ body::after {
   width: 200%;
   height: 200%;
   background-image: radial-gradient(var(--accent) 1px, transparent 1px);
-}
+} */
 
-.starfield::before {
+/* .starfield::before {
   background-size: 4px 4px;
   opacity: 0.4;
   transform: translate3d(var(--x1), var(--y1), 0);
   transition: transform 30s linear;
-}
+} */
 
-.starfield::after {
+/* .starfield::after {
   background-size: 6px 6px;
   opacity: 0.2;
   transform: translate3d(var(--x2), var(--y2), 0);
-  transition: transform 45s linear;
-}
-
+  transition: transform 60s ease-in-out;
+} */
