@@ -1,0 +1,53 @@
+body {
+  margin: 0;
+  background: radial-gradient(circle at center, #111 0%, #000 80%);
+  font-family: 'Fira Code', monospace;
+  color: #00ff9b;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background-image:
+    radial-gradient(#00ff9b 1px, transparent 1px),
+    radial-gradient(#00ff9b 1px, transparent 1px);
+  background-position: 0 0, 25px 25px;
+  background-size: 50px 50px;
+  opacity: 0.1;
+  animation: move-bg 40s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes move-bg {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(-50px, -50px, 0); }
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 255, 155, 0.1) 0,
+    rgba(0, 255, 155, 0.1) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  animation: scanlines 1s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+@keyframes scanlines {
+  from { background-position: 0 0; }
+  to { background-position: 0 -4px; }
+}

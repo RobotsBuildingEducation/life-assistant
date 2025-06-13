@@ -21,8 +21,15 @@ const fonts = {
 const styles = {
   global: {
     body: {
-      bg: "#0d0d0d",
-      color: "#f0f0f0",
+      bg: "transparent",
+      color: "#00ff9b",
+    },
+    button: {
+      transition: "all 0.2s",
+      _hover: {
+        transform: "translateY(-2px)",
+        boxShadow: "0 0 8px rgba(0,255,155,0.7)",
+      },
     },
   },
 };
@@ -30,6 +37,7 @@ const styles = {
 const colors = {
   brand: {
     500: "#00ff9b",
+    700: "#ff00ff",
   },
 };
 
