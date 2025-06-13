@@ -69,6 +69,10 @@ body::after {
   overflow: hidden;
   pointer-events: none;
   z-index: -1;
+  --x1: 0;
+  --y1: 0;
+  --x2: 0;
+  --y2: 0;
 }
 
 .starfield::before,
@@ -80,31 +84,19 @@ body::after {
   width: 200%;
   height: 200%;
   background-image: radial-gradient(var(--accent) 1px, transparent 1px);
+}
+
+.starfield::before {
   background-size: 4px 4px;
   opacity: 0.4;
-  animation: wander 90s linear infinite;
+  transform: translate3d(var(--x1), var(--y1), 0);
+  transition: transform 30s linear;
 }
 
 .starfield::after {
   background-size: 6px 6px;
   opacity: 0.2;
-  animation: wander 120s linear infinite;
+  transform: translate3d(var(--x2), var(--y2), 0);
+  transition: transform 45s linear;
 }
 
-@keyframes wander {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  25% {
-    transform: translate3d(-40px, 20px, 0);
-  }
-  50% {
-    transform: translate3d(30px, -30px, 0);
-  }
-  75% {
-    transform: translate3d(-20px, -40px, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-}
