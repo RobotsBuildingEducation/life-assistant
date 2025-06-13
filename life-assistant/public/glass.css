@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+:root {
+  --accent: #ff6ad5;
+}
+
+body {
+  margin: 0;
+  background: url('/vite.svg') center/cover fixed;
+  backdrop-filter: blur(8px);
+  color: #222;
+  font-family: 'Inter', sans-serif;
+}

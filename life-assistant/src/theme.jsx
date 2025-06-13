@@ -22,7 +22,7 @@ const styles = {
   global: {
     body: {
       bg: "transparent",
-      color: "#00ff9b",
+      color: "var(--accent)",
     },
     button: {
       transition: "all 0.2s",
@@ -36,7 +36,7 @@ const styles = {
 
 const colors = {
   brand: {
-    500: "#00ff9b",
+    500: "var(--accent)",
     700: "#ff00ff",
   },
 };

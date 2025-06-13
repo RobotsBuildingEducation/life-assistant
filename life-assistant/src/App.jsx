@@ -32,7 +32,7 @@ import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
 import { getUser } from "./firebaseResources/store";
-import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
+import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
@@ -153,7 +153,7 @@ function App() {
       {showHeader && (
         <Box p={4}>
           <HStack spacing={3} justify="flex-end">
-            <ColorModeSwitcher />
+            <ThemeSwitcher />
             <IconButton
               aria-label="Copy Pub  Key"
               icon={<FaIdCard />}
