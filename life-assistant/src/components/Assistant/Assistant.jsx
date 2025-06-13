@@ -10,8 +10,9 @@ import {
   MenuList,
   MenuItem,
   Text,
+  useColorModeValue,
 } from "@chakra-ui/react";
-// import { glassStyles } from "../../theme";
+import { glassStyles, surfaceGlass } from "../../theme";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database, Schema } from "../../firebaseResources/config";
 import { getUser } from "../../firebaseResources/store";
@@ -253,22 +254,16 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
     setLoadingMeals(false);
   };
 
-  if (loadingUser || loadingMemories) {
-    return (
-      <Box p={4} textAlign="center">
-        <Spinner />
-      </Box>
-    );
-  }
+  // if (loadingUser || loadingMemories) {
+  //   return (
+  //     <Box p={4} textAlign="center">
+  //       <Spinner />
+  //     </Box>
+  //   );
+  // }
 
   return (
-    <Box
-      p={8}
-      maxW="600px"
-      mx="auto"
-      mt={24}
-      // sx={glassStyles}
-    >
+    <Box p={8} maxW="600px" mx="auto" mt={24} sx={surfaceGlass}>
       <Heading mb={4}>
         Personal Assistant{" "}
         {memories.length > 0 && (
@@ -295,6 +290,10 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
               setRecipes([]);
             }}
             isDisabled={loadingPlan}
+            bg={useColorModeValue("rgba(255,255,255,0.8)", "rgba(0,0,0,1)")}
+            _hover={{
+              bg: "transparent",
+            }}
           >
             Create Daily Action
           </MenuItem>

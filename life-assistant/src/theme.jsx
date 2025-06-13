@@ -45,7 +45,7 @@ const darkParticles = `
 const glassBox = {
   backdropFilter: "blur(20px) saturate(30%)",
   WebkitBackdropFilter: "blur(20px) saturate(30%)",
-  backgroundColor: "rgba(255, 255, 255, 0.08)",
+  backgroundColor: "rgba(1, 1, 1, 0.08)",
   border: "1px solid rgba(255,255,255,0.3)",
   borderRadius: "1rem",
   boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
@@ -81,9 +81,9 @@ const interactiveGlass = {
 };
 
 // Stronger gaussian blur for overlay surfaces like modals and menus
-const surfaceGlass = {
+export const surfaceGlass = {
   ...glassBox,
-  backdropFilter: "blur(40px)",
+  backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(40px)",
   backgroundColor: "rgba(255,255,255,0.2)",
   _dark: {
@@ -101,8 +101,8 @@ export const theme = extendTheme({
       body: {
         // Animated, more vibrant background gradient
         bg: mode(
-          "linear-gradient(130deg, #ffffff 0%, #e0f7ff 20%, #c0e4ff 40%, #80ccff 60%, #40baff 80%, #008eff 100%)",
-          "linear-gradient(130deg, #020024 0%, #150060 20%, #3000a0 40%, #4000c0 60%, #5000e0 80%, #6200ff 100%)"
+          "linear-gradient(130deg, #ffffff 0%, #e0f7ff 20%,rgb(222, 232, 239) 40%,rgb(245, 251, 255) 60%,rgb(227, 243, 251) 80%,rgb(240, 248, 255) 100%)",
+          "linear-gradient(130deg, #020024 0%,rgb(5, 3, 13) 20%,rgb(13, 0, 43) 40%,rgb(10, 5, 21) 60%,rgb(34, 30, 41) 80%,rgb(51, 45, 59) 100%)"
         )(props),
         backgroundSize: "800% 800%",
         animation: `${gradientAnimation} 20s ease infinite`,
@@ -128,18 +128,40 @@ export const theme = extendTheme({
       ".chakra-input": glassBox,
       ".chakra-textarea": glassBox,
       ".chakra-modal__content": surfaceGlass,
-      ".chakra-menu__list": surfaceGlass,
-      ".chakra-menu__item": interactiveGlass,
+      ".chakra-menu__menu-list": {
+        // ...glassBox,
+        // backgroundColor: "red",
+        backdropFilter: "blur(100px) saturate(30%)",
+        WebkitBackdropFilter: "blur(100px) saturate(30%)",
+        backgroundColor: "rgba(255, 255, 255, 1)",
+        border: "1px solid rgba(255,255,255,1)",
+        borderRadius: "1rem",
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 1)",
+        transition: "background-color 0.3s ease, backdrop-filter 0.3s ease",
+        _dark: {
+          backgroundColor: "rgba(0,0,0,1)",
+          border: "1px solid rgba(255,255,255,1)",
+        },
+      },
+      ".chakra-menu__menuitem": interactiveGlass,
     }),
   },
   components: {
     Button: {
-      baseStyle: interactiveGlass,
-      variants: { glass: interactiveGlass },
+      baseStyle: surfaceGlass,
+      variants: { glass: surfaceGlass },
       defaultProps: { variant: "glass" },
     },
-    Modal: { baseStyle: { dialog: surfaceGlass } },
-    Menu: { baseStyle: { list: surfaceGlass } },
+    Modal: { baseStyle: { dialog: glassBox } },
+    Menu: {
+      baseStyle: {
+        // list: glassBox
+        list: {
+          // border: "2px solid red",
+          // ...glassBox,
+        },
+      },
+    },
     Input: { baseStyle: { field: glassBox } },
     Textarea: { baseStyle: { textarea: glassBox } },
   },

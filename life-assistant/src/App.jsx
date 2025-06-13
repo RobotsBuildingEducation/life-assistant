@@ -76,33 +76,34 @@ function App() {
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
-    const retrieveUser = async (npub) => {
-      try {
-        const user = await getUser(npub);
-        if (user) {
-          if (user.step === "onboarding") {
-            navigate("/onboarding/" + user.onboardingStep);
-          } else {
-            navigate("/assistant");
-          }
-        } else {
-          localStorage.clear();
-          navigate("/login");
-        }
-      } catch (err) {
-        console.error("Error retrieving user:", err);
-        localStorage.clear();
-        navigate("/login");
-      }
-    };
+    navigate("/assistant");
+    // const retrieveUser = async (npub) => {
+    //   try {
+    //     const user = await getUser(npub);
+    //     if (user) {
+    //       if (user.step === "onboarding") {
+    //         navigate("/onboarding/" + user.onboardingStep);
+    //       } else {
+    //         navigate("/assistant");
+    //       }
+    //     } else {
+    //       localStorage.clear();
+    //       navigate("/login");
+    //     }
+    //   } catch (err) {
+    //     console.error("Error retrieving user:", err);
+    //     localStorage.clear();
+    //     navigate("/login");
+    //   }
+    // };
 
-    const storedNpub = localStorage.getItem("local_npub");
-    if (storedNpub) {
-      retrieveUser(storedNpub);
-    } else {
-      localStorage.clear();
-      navigate("/login");
-    }
+    // const storedNpub = localStorage.getItem("local_npub");
+    // if (storedNpub) {
+    //   retrieveUser(storedNpub);
+    // } else {
+    //   localStorage.clear();
+    //   navigate("/login");
+    // }
   }, [navigate]);
 
   const handleSignOut = () => {
