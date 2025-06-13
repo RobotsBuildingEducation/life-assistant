@@ -1,10 +1,15 @@
 :root {
   --accent: #0066ff;
+  --bg: #f0f0f0;
+  --text-color: #222;
+  --box-bg: #fff;
+  --box-border: 1px solid #ccc;
+  --box-shadow: none;
 }
 
 body {
   margin: 0;
-  background: #f0f0f0;
-  color: #222;
+  background: var(--bg);
+  color: var(--text-color);
   font-family: Helvetica, Arial, sans-serif;
 }

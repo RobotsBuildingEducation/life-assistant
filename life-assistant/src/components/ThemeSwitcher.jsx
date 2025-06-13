@@ -30,6 +30,7 @@ export const ThemeSwitcher = () => {
   const changeTheme = (t) => {
     const link = document.getElementById("theme-link");
     if (link) link.setAttribute("href", `/${t}.css`);
+    onClose();
   };
 
   return (

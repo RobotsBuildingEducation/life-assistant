@@ -1,12 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
 :root {
   --accent: #ff6ad5;
+  --bg: url("/vite.svg") center/cover fixed;
+  --text-color: #222;
+  --box-bg: rgba(255, 255, 255, 0.2);
+  --box-border: 1px solid rgba(255, 255, 255, 0.4);
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 body {
   margin: 0;
-  background: url('/vite.svg') center/cover fixed;
+  background: var(--bg);
   backdrop-filter: blur(8px);
-  color: #222;
-  font-family: 'Inter', sans-serif;
+  color: var(--text-color);
+  font-family: "Inter", sans-serif;
 }
