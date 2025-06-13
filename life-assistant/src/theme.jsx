@@ -21,14 +21,17 @@ const fonts = {
 const styles = {
   global: {
     body: {
-      bg: "transparent",
-      color: "var(--accent)",
+      background: "var(--bg)",
+      color: "var(--text-color)",
     },
     button: {
       transition: "all 0.2s",
+      border: "1px solid var(--accent)",
+      boxShadow: "0 0 6px var(--accent)",
       _hover: {
         transform: "translateY(-2px)",
-        boxShadow: "0 0 8px rgba(0,255,155,0.7)",
+        bg: "var(--accent)",
+        color: "#000",
       },
     },
   },
@@ -41,7 +44,17 @@ const colors = {
   },
 };
 
-export const theme = extendTheme({ config, fonts, styles, colors });
+const components = {
+  ModalContent: {
+    baseStyle: {
+      background: "var(--box-bg)",
+      border: "var(--box-border)",
+      boxShadow: "var(--box-shadow)",
+    },
+  },
+};
+
+export const theme = extendTheme({ config, fonts, styles, colors, components });
 
 export const markdownTheme = {
   h1: (props) => <Heading as="h1" size="lg" my={4} mt={8} {...props} />,

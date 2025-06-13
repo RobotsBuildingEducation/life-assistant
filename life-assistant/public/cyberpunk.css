@@ -1,12 +1,17 @@
 :root {
   --accent: #00ff9b;
+  --bg: radial-gradient(circle at center, #111 0%, #000 80%);
+  --text-color: var(--accent);
+  --box-bg: rgba(0, 0, 0, 0.4);
+  --box-border: 1px solid var(--accent);
+  --box-shadow: 0 0 10px rgba(0, 255, 155, 0.5);
 }
 
 body {
   margin: 0;
-  background: radial-gradient(circle at center, #111 0%, #000 80%);
+  background: var(--bg);
   font-family: 'Fira Code', monospace;
-  color: var(--accent);
+  color: var(--text-color);
   overflow-x: hidden;
 }
 
@@ -64,19 +69,38 @@ body::after {
 
 .starfield {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 200%;
-  height: 200%;
-  background-image: radial-gradient(var(--accent) 1px, transparent 1px);
-  background-size: 3px 3px;
-  opacity: 0.25;
-  animation: star-move 60s linear infinite;
+  inset: 0;
+  overflow: hidden;
   pointer-events: none;
   z-index: -1;
 }
 
-@keyframes star-move {
+.starfield::before,
+.starfield::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: radial-gradient(var(--accent) 1px, transparent 1px);
+  background-size: 4px 4px;
+  opacity: 0.4;
+  animation: spin 120s linear infinite, drift 30s linear infinite;
+}
+
+.starfield::after {
+  background-size: 6px 6px;
+  opacity: 0.2;
+  animation-duration: 180s, 60s;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes drift {
   from { transform: translate3d(0,0,0); }
   to { transform: translate3d(-100px, -100px, 0); }
 }
