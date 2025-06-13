@@ -9,11 +9,31 @@ import {
 } from "@chakra-ui/react";
 
 const config = {
-  initialColorMode: "light", // or "dark" or "system"
-  useSystemColorMode: false, // if true, will follow OS setting
+  initialColorMode: "dark",
+  useSystemColorMode: false,
 };
 
-export const theme = extendTheme({ config });
+const fonts = {
+  heading: "'Fira Code', monospace",
+  body: "'Fira Code', monospace",
+};
+
+const styles = {
+  global: {
+    body: {
+      bg: "#0d0d0d",
+      color: "#f0f0f0",
+    },
+  },
+};
+
+const colors = {
+  brand: {
+    500: "#00ff9b",
+  },
+};
+
+export const theme = extendTheme({ config, fonts, styles, colors });
 
 export const markdownTheme = {
   h1: (props) => <Heading as="h1" size="lg" my={4} mt={8} {...props} />,
