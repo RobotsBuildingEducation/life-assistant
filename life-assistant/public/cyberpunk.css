@@ -28,7 +28,7 @@ body::before {
   background-position: 0 0, 25px 25px, 50px 50px;
   background-size: 50px 50px, 75px 75px, 100px 100px;
   opacity: 0.15;
-  animation: move-bg 40s linear infinite, twinkle 3s ease-in-out infinite;
+  animation: move-bg 40s linear infinite;
   pointer-events: none;
 }
 
@@ -55,36 +55,24 @@ body::after {
     transparent 2px,
     transparent 4px
   );
-  animation: scanlines 1s linear infinite;
+  /* Disabled flickering scanline animation */
+  /* animation: scanlines 1s linear infinite; */
   pointer-events: none;
   mix-blend-mode: overlay;
 }
 
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.15;
-  }
-  50% {
-    opacity: 0.3;
-  }
-}
+/* Twinkle and scanline animations were removed to avoid strobing */
 
-@keyframes scanlines {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 -4px;
-  }
-}
-
-.starfield {
+/* .starfield {
   position: fixed;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
   z-index: -1;
+  --x1: 0;
+  --y1: 0;
+  --x2: 0;
+  --y2: 0;
 }
 
 .starfield::before,
@@ -96,31 +84,18 @@ body::after {
   width: 200%;
   height: 200%;
   background-image: radial-gradient(var(--accent) 1px, transparent 1px);
+} */
+
+/* .starfield::before {
   background-size: 4px 4px;
   opacity: 0.4;
-  animation: spin 120s linear infinite, drift 30s linear infinite;
-}
+  transform: translate3d(var(--x1), var(--y1), 0);
+  transition: transform 30s linear;
+} */
 
-.starfield::after {
+/* .starfield::after {
   background-size: 6px 6px;
   opacity: 0.2;
-  animation-duration: 180s, 60s;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes drift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-100px, -100px, 0);
-  }
-}
+  transform: translate3d(var(--x2), var(--y2), 0);
+  transition: transform 60s ease-in-out;
+} */
