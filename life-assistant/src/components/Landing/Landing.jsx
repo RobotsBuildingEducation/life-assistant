@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -14,10 +14,33 @@ import {
 
 import { useDecentralizedIdentity } from "../../hooks/useDecentralizedIdentity";
 import { createUser, getUser } from "../../firebaseResources/store";
+import { RoleCanvas } from "../RoleCanvas/RoleCanvas";
 
 export const Landing = () => {
   const navigate = useNavigate();
   const [authField, setAuthField] = useState("");
+  const [role, setRole] = useState("chores");
+
+  // define the cycle of roles in the same order as RoleCanvas
+  const roles = [
+    "chores",
+    "sphere",
+    "plan",
+    "meals",
+    "finance",
+    "sleep",
+    "emotions",
+    "counselor",
+  ];
+
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % roles.length;
+      setRole(roles[index]);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { nostrPubKey, generateNostrKeys, auth, errorMessage } =
     useDecentralizedIdentity(
@@ -36,12 +59,10 @@ export const Landing = () => {
           navigate("/assistant");
         }
       } else {
-        // Create new user with either secret key or blank name
         await createUser(
           nostrPubKey,
           authField.includes("nsec") ? "" : authField
         );
-
         navigate("/onboarding/" + 1);
       }
     };
@@ -55,10 +76,18 @@ export const Landing = () => {
     <>
       <Box as="main" p={4} maxW="md" mx="auto" mt={24}>
         <VStack spacing={6} align="stretch">
+          {/* RoleCanvas cycling through roles every 3s */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
+          </div>
           <Heading as="h2" size="lg" textAlign="center">
-            Life Assistant
+            Personal Assistant
           </Heading>
-
           <FormControl>
             <FormLabel>Enter a username or secret key</FormLabel>
             <Input

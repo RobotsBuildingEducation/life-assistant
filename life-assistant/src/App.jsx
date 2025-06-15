@@ -148,7 +148,7 @@ function App() {
       {showHeader && (
         <Box p={4}>
           <HStack spacing={3} justify="flex-end">
-            <ColorModeSwitcher />
+            {/* <ColorModeSwitcher /> */}
             <IconButton
               aria-label="Copy Pub  Key"
               icon={<FaIdCard />}
