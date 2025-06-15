@@ -20,13 +20,15 @@ export const styles = {
   global: (props) => ({
     ":root": {
       "--brand-color": localStorage.getItem("theme_color") || "#00ff9c",
+      "--font-family":
+        localStorage.getItem("theme_font") || "'Inter', sans-serif",
     },
     body: {
       // cypherpunk inspired colors
       bg: mode("#f0f0f0", "#0d0d0d")(props),
       color: mode("#000", "var(--brand-color)")(props),
       backgroundColor: mode("#f0f0f0", "rgba(0,0,34)")(props),
-      fontFamily: "'Courier New', monospace",
+      fontFamily: "var(--font-family)",
     },
   }),
 };
@@ -35,8 +37,8 @@ export const theme = extendTheme({
   config,
   styles,
   fonts: {
-    heading: "'Courier New', monospace",
-    body: "'Courier New', monospace",
+    heading: "var(--font-family)",
+    body: "var(--font-family)",
   },
   colors: {
     cyber: {
