@@ -22,7 +22,7 @@ export const styles = {
       // cypherpunk inspired colors
       bg: mode("#f0f0f0", "#0d0d0d")(props),
       color: mode("#000", "#00ff9c")(props),
-      backgroundColor: mode("#f0f0f0", "#0d0d0d")(props),
+      backgroundColor: mode("#f0f0f0", "rgba(0,0,34)")(props),
       fontFamily: "'Courier New', monospace",
     },
   }),
@@ -37,23 +37,23 @@ export const theme = extendTheme({
   },
   colors: {
     cyber: {
-      500: '#00ff9c',
-      600: '#0efc96',
-      900: '#0d0d0d',
+      500: "#00ff9c",
+      600: "#0efc96",
+      900: "#0d0d0d",
     },
   },
   components: {
     Button: {
       variants: {
         solid: {
-          bg: 'cyber.500',
-          color: '#000',
-          _hover: { bg: 'cyber.600' },
+          bg: "cyber.500",
+          color: "#000",
+          _hover: { bg: "cyber.600" },
         },
         outline: {
-          borderColor: 'cyber.500',
-          color: 'cyber.500',
-          _hover: { bg: 'cyber.500', color: '#000' },
+          borderColor: "cyber.500",
+          color: "cyber.500",
+          _hover: { bg: "cyber.500", color: "#000" },
         },
       },
     },
@@ -61,8 +61,11 @@ export const theme = extendTheme({
       variants: {
         outline: {
           field: {
-            borderColor: 'cyber.500',
-            _focus: { borderColor: 'cyber.500', boxShadow: '0 0 0 1px #00ff9c' },
+            borderColor: "cyber.500",
+            _focus: {
+              borderColor: "cyber.500",
+              boxShadow: "0 0 0 1px #00ff9c",
+            },
           },
         },
       },
