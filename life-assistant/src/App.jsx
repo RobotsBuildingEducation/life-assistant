@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -21,6 +21,7 @@ import {
   Text,
   Link,
   Input,
+  Select,
 } from "@chakra-ui/react";
 import { FiLogOut, FiKey, FiUser, FiGlobe, FiDownload } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
@@ -83,6 +84,10 @@ function App() {
     onClose: onThemeClose,
   } = useDisclosure();
 
+  const [selectedFont, setSelectedFont] = useState(
+    localStorage.getItem("theme_font") || "'Courier New', monospace"
+  );
+
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
     const retrieveUser = async (npub) => {
@@ -95,6 +100,14 @@ function App() {
               user.themeColor
             );
             localStorage.setItem("theme_color", user.themeColor);
+          }
+          if (user.fontFamily) {
+            document.documentElement.style.setProperty(
+              "--font-family",
+              user.fontFamily
+            );
+            localStorage.setItem("theme_font", user.fontFamily);
+            setSelectedFont(user.fontFamily);
           }
           if (user.step === "onboarding") {
             navigate("/onboarding/" + user.onboardingStep);
@@ -125,6 +138,11 @@ function App() {
     const saved = localStorage.getItem("theme_color");
     if (saved) {
       document.documentElement.style.setProperty("--brand-color", saved);
+    }
+    const font = localStorage.getItem("theme_font");
+    if (font) {
+      document.documentElement.style.setProperty("--font-family", font);
+      setSelectedFont(font);
     }
   }, []);
 
@@ -165,6 +183,16 @@ function App() {
     const npub = localStorage.getItem("local_npub");
     if (npub) {
       updateUser(npub, { themeColor: color });
+    }
+  };
+
+  const updateThemeFont = (font) => {
+    document.documentElement.style.setProperty("--font-family", font);
+    localStorage.setItem("theme_font", font);
+    setSelectedFont(font);
+    const npub = localStorage.getItem("local_npub");
+    if (npub) {
+      updateUser(npub, { fontFamily: font });
     }
   };
 
@@ -360,6 +388,20 @@ function App() {
               aria-label="Custom color"
               onChange={(e) => updateThemeColor(e.target.value)}
             />
+
+            <Text mt={4}>Choose Font</Text>
+            <Select
+              mt={2}
+              value={selectedFont}
+              onChange={(e) => updateThemeFont(e.target.value)}
+            >
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+              <option value="'Comic Sans MS', cursive">Comic Sans</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Roboto, sans-serif">Roboto</option>
+            </Select>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onThemeClose}>
