@@ -21,7 +21,7 @@ export const styles = {
     ":root": {
       "--brand-color": localStorage.getItem("theme_color") || "#00ff9c",
       "--font-family":
-        localStorage.getItem("theme_font") || "'Courier New', monospace",
+        localStorage.getItem("theme_font") || "'Inter', sans-serif",
     },
     body: {
       // cypherpunk inspired colors

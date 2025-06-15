@@ -85,7 +85,7 @@ function App() {
   } = useDisclosure();
 
   const [selectedFont, setSelectedFont] = useState(
-    localStorage.getItem("theme_font") || "'Courier New', monospace"
+    localStorage.getItem("theme_font") || "'Inter', sans-serif"
   );
 
   // Redirect based on user record (onboarding vs. assistant)
@@ -395,12 +395,16 @@ function App() {
               value={selectedFont}
               onChange={(e) => updateThemeFont(e.target.value)}
             >
+              <option value="'Inter', sans-serif">Inter</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="'Poppins', sans-serif">Poppins</option>
+              <option value="'Fira Code', monospace">Fira Code</option>
               <option value="'Courier New', monospace">Courier New</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
               <option value="Arial, sans-serif">Arial</option>
               <option value="'Times New Roman', serif">Times New Roman</option>
               <option value="'Comic Sans MS', cursive">Comic Sans</option>
               <option value="Georgia, serif">Georgia</option>
-              <option value="Roboto, sans-serif">Roboto</option>
             </Select>
           </ModalBody>
           <ModalFooter>
