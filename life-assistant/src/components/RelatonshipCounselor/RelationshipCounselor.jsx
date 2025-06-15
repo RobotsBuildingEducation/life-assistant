@@ -16,6 +16,7 @@ import {
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI } from "../../firebaseResources/config";
 import { markdownTheme } from "../../theme";
+import GlassBox from "../GlassBox";
 
 export const RelationshipCounselor = ({ onClose }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -121,7 +122,7 @@ export const RelationshipCounselor = ({ onClose }) => {
   }, [previews]);
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="md" boxShadow="sm" mb={6}>
+    <GlassBox p={4} borderRadius="md" boxShadow="sm" mb={6}>
       <VStack spacing={4} align="start">
         <Text fontSize="lg" fontWeight="bold">
           Relationship Counselor
@@ -200,6 +201,6 @@ export const RelationshipCounselor = ({ onClose }) => {
           Close
         </Button> */}
       </VStack>
-    </Box>
+    </GlassBox>
   );
 };

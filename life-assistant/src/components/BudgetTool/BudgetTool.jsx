@@ -20,6 +20,7 @@ import {
   OrderedList,
   ListItem,
 } from "@chakra-ui/react";
+import GlassBox from "../GlassBox";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database } from "../../firebaseResources/config";
 import {
@@ -163,7 +164,7 @@ const BudgetTool = () => {
   };
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="md" maxW="600px" mx="auto">
+    <GlassBox p={4} borderRadius="md" maxW="600px" mx="auto">
       <Heading size="md" mb={4} textAlign="center">
         Budget Analyzer
       </Heading>
@@ -315,7 +316,7 @@ const BudgetTool = () => {
           </Box>
         )}
       </Box>
-    </Box>
+    </GlassBox>
   );
 };
 

@@ -18,6 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { updateUser } from "../../firebaseResources/store";
 import { markdownTheme } from "../../theme";
+import GlassBox from "../GlassBox";
 
 export const PlanResult = ({
   userDoc,
@@ -61,13 +62,13 @@ export const PlanResult = ({
   console.log("memories", memories);
 
   return (
-    <Box
+    <GlassBox
       mb={6}
       p={4}
-      borderRadius="24px"
+
       // borderWidth="1px"
       // border="1px solid #ff69b4"
-      boxShadow="0px 0px 12px 0px #ff69b4"
+      // boxShadow="0px 0px 12px 0px #ff69b4"
     >
       <Heading size="sm" mb={2}>
         Edit Profile
@@ -178,6 +179,6 @@ export const PlanResult = ({
           </Box>
         ))}
       </VStack>
-    </Box>
+    </GlassBox>
   );
 };

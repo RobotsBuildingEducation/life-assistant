@@ -28,6 +28,7 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import GlassBox from "../GlassBox";
 import {
   addDoc,
   collection,
@@ -281,7 +282,7 @@ export default function ChoreManager() {
     );
 
   return (
-    <Box p={6} maxW="760px" mx="auto" borderWidth="1px" borderRadius="lg">
+    <GlassBox p={6} maxW="760px" mx="auto" borderRadius="lg">
       <Heading size="md" mb={4}>
         Chore Manager
       </Heading>
@@ -420,6 +421,6 @@ export default function ChoreManager() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Box>
+    </GlassBox>
   );
 }

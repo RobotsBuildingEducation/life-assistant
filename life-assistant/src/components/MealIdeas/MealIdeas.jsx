@@ -8,9 +8,10 @@ import {
   CardBody,
   Text,
 } from "@chakra-ui/react";
+import GlassBox from "../GlassBox";
 
 const MealIdeas = ({ recipes }) => (
-  <Box>
+  <GlassBox p={4} mb={6} borderRadius="md">
     <Heading size="sm" mb={2}>
       Meal Ideas
     </Heading>
@@ -32,7 +33,7 @@ const MealIdeas = ({ recipes }) => (
         </Card>
       ))}
     </Stack>
-  </Box>
+  </GlassBox>
 );
 
 export default MealIdeas;
