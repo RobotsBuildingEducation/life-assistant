@@ -20,8 +20,10 @@ import {
   Divider,
   Text,
   Link,
+  Input,
 } from "@chakra-ui/react";
 import { FiLogOut, FiKey, FiUser, FiGlobe, FiDownload } from "react-icons/fi";
+import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
 
 import { FaIdCard, FaKey } from "react-icons/fa6";
@@ -75,6 +77,11 @@ function App() {
     onOpen: onInstallOpen,
     onClose: onInstallClose,
   } = useDisclosure();
+  const {
+    isOpen: isThemeOpen,
+    onOpen: onThemeOpen,
+    onClose: onThemeClose,
+  } = useDisclosure();
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
@@ -107,6 +114,13 @@ function App() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("theme_color");
+    if (saved) {
+      document.documentElement.style.setProperty("--brand-color", saved);
+    }
+  }, []);
+
   const handleSignOut = () => {
     localStorage.removeItem("local_npub");
     localStorage.removeItem("local_nsec");
@@ -136,6 +150,11 @@ function App() {
       status: "success",
       duration: 2000,
     });
+  };
+
+  const updateThemeColor = (color) => {
+    document.documentElement.style.setProperty("--brand-color", color);
+    localStorage.setItem("theme_color", color);
   };
 
   // Only show the header (icons) on onboarding or assistant routes
@@ -168,6 +187,11 @@ function App() {
               aria-label="Install"
               icon={<FiDownload />}
               onClick={onInstallOpen}
+            />
+            <IconButton
+              aria-label="Themes"
+              icon={<FaPalette />}
+              onClick={onThemeOpen}
             />
             <IconButton
               aria-label="Sign out"
@@ -285,6 +309,46 @@ function App() {
             >
               Close
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isThemeOpen} onClose={onThemeClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Choose Theme Color</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <HStack mb={4} justify="center">
+              {[
+                "#00ff9c",
+                "#ff007c",
+                "#009cff",
+                "#ffde00",
+                "#ff8c00",
+                "#8a2be2",
+              ].map((c) => (
+                <Button
+                  key={c}
+                  bg={c}
+                  _hover={{ bg: c }}
+                  onClick={() => updateThemeColor(c)}
+                  height="30px"
+                  width="30px"
+                  minW="30px"
+                  p={0}
+                  borderRadius="full"
+                />
+              ))}
+            </HStack>
+            <Input
+              type="color"
+              aria-label="Custom color"
+              onChange={(e) => updateThemeColor(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" onMouseDown={onThemeClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
