@@ -18,10 +18,13 @@ const config = {
 
 export const styles = {
   global: (props) => ({
+    ":root": {
+      "--brand-color": localStorage.getItem("theme_color") || "#00ff9c",
+    },
     body: {
       // cypherpunk inspired colors
       bg: mode("#f0f0f0", "#0d0d0d")(props),
-      color: mode("#000", "#00ff9c")(props),
+      color: mode("#000", "var(--brand-color)")(props),
       backgroundColor: mode("#f0f0f0", "rgba(0,0,34)")(props),
       fontFamily: "'Courier New', monospace",
     },
@@ -37,8 +40,8 @@ export const theme = extendTheme({
   },
   colors: {
     cyber: {
-      500: "#00ff9c",
-      600: "#0efc96",
+      500: "var(--brand-color)",
+      600: "var(--brand-color)",
       900: "#0d0d0d",
     },
   },
@@ -64,7 +67,7 @@ export const theme = extendTheme({
             borderColor: "cyber.500",
             _focus: {
               borderColor: "cyber.500",
-              boxShadow: "0 0 0 1px #00ff9c",
+              boxShadow: "0 0 0 1px var(--brand-color)",
             },
           },
         },
