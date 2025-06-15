@@ -169,6 +169,11 @@ function App() {
           <HStack spacing={3} justify="flex-end">
             {/* <ColorModeSwitcher /> */}
             <IconButton
+              aria-label="Themes"
+              icon={<FaPalette />}
+              onClick={onThemeOpen}
+            />
+            <IconButton
               aria-label="Copy Pub  Key"
               icon={<FaIdCard />}
               onClick={handleCopyPubKey}
@@ -188,11 +193,7 @@ function App() {
               icon={<FiDownload />}
               onClick={onInstallOpen}
             />
-            <IconButton
-              aria-label="Themes"
-              icon={<FaPalette />}
-              onClick={onThemeOpen}
-            />
+
             <IconButton
               aria-label="Sign out"
               icon={<GiExitDoor />}
@@ -341,14 +342,18 @@ function App() {
                 />
               ))}
             </HStack>
+            Or pick your own color
             <Input
+              borderWidth="0px"
               type="color"
               aria-label="Custom color"
               onChange={(e) => updateThemeColor(e.target.value)}
             />
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" onMouseDown={onThemeClose}>Close</Button>
+            <Button variant="ghost" onMouseDown={onThemeClose}>
+              Close
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
