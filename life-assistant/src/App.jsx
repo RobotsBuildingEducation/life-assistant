@@ -32,7 +32,7 @@ import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
-import { getUser } from "./firebaseResources/store";
+import { getUser, updateUser } from "./firebaseResources/store";
 import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
@@ -89,6 +89,13 @@ function App() {
       try {
         const user = await getUser(npub);
         if (user) {
+          if (user.themeColor) {
+            document.documentElement.style.setProperty(
+              "--brand-color",
+              user.themeColor
+            );
+            localStorage.setItem("theme_color", user.themeColor);
+          }
           if (user.step === "onboarding") {
             navigate("/onboarding/" + user.onboardingStep);
           } else {
@@ -155,6 +162,10 @@ function App() {
   const updateThemeColor = (color) => {
     document.documentElement.style.setProperty("--brand-color", color);
     localStorage.setItem("theme_color", color);
+    const npub = localStorage.getItem("local_npub");
+    if (npub) {
+      updateUser(npub, { themeColor: color });
+    }
   };
 
   // Only show the header (icons) on onboarding or assistant routes

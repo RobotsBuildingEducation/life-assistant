@@ -18,6 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { updateUser } from "../../firebaseResources/store";
 import { markdownTheme } from "../../theme";
+import GlassBox from "../GlassBox";
 
 export const PlanResult = ({
   userDoc,
@@ -61,7 +62,7 @@ export const PlanResult = ({
   console.log("memories", memories);
 
   return (
-    <Box
+    <GlassBox
       mb={6}
       p={4}
       borderRadius="24px"
@@ -178,6 +179,6 @@ export const PlanResult = ({
           </Box>
         ))}
       </VStack>
-    </Box>
+    </GlassBox>
   );
 };

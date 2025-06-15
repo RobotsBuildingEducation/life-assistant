@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Heading, Text, Stack, Select, Button } from "@chakra-ui/react";
+import GlassBox from "../GlassBox";
 
 const SleepCycleCalculator = ({
   sleepHour,
@@ -11,7 +12,7 @@ const SleepCycleCalculator = ({
   handleSleepNow,
   cycles,
 }) => (
-  <Box mb={6} p={4} borderWidth="1px" borderRadius="md">
+  <GlassBox mb={6} p={4} borderRadius="md">
     <Heading size="sm" mb={2}>
       Sleep Cycle Calculator
     </Heading>
@@ -84,7 +85,7 @@ const SleepCycleCalculator = ({
         })}
       </Box>
     )}
-  </Box>
+  </GlassBox>
 );
 
 export default SleepCycleCalculator;

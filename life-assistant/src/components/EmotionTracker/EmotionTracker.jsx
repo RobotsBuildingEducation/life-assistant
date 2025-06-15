@@ -12,6 +12,7 @@ import {
   WrapItem,
   CloseButton,
 } from "@chakra-ui/react";
+import GlassBox from "../GlassBox";
 import {
   collection,
   query,
@@ -154,7 +155,7 @@ export default function EmotionTracker({ visible }) {
   if (!visible) return null;
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="md" mb={6}>
+    <GlassBox p={4} borderRadius="md" mb={6}>
       <VStack align="stretch" spacing={4}>
         <Text fontSize="lg" fontWeight="bold">
           Emotion Tracker
@@ -334,6 +335,6 @@ export default function EmotionTracker({ visible }) {
             ))
         )}
       </VStack>
-    </Box>
+    </GlassBox>
   );
 }
