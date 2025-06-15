@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Box, Button, Input, Text, VStack } from "@chakra-ui/react";
+import { PanRightComponent } from "../../theme";
 import { useNavigate, useParams } from "react-router-dom";
 import { updateUser } from "../../firebaseResources/store";
 
@@ -59,20 +60,22 @@ export const Onboarding = () => {
   }
 
   return (
-    <Box maxW="400px" mx="auto" mt={24} p={4}>
-      <VStack spacing={6}>
-        <Text fontSize="lg" fontWeight="bold">
-          {instruction}
-        </Text>
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={placeholder}
-        />
-        <Button onClick={handleNext} width="full">
-          {stepIndex === steps.length - 1 ? "Finish" : "Next"}
-        </Button>
-      </VStack>
-    </Box>
+    <PanRightComponent speed="0.3s">
+      <Box maxW="400px" mx="auto" mt={24} p={4}>
+        <VStack spacing={6}>
+          <Text fontSize="lg" fontWeight="bold">
+            {instruction}
+          </Text>
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={placeholder}
+          />
+          <Button onClick={handleNext} width="full">
+            {stepIndex === steps.length - 1 ? "Finish" : "Next"}
+          </Button>
+        </VStack>
+      </Box>
+    </PanRightComponent>
   );
 };

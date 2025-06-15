@@ -18,16 +18,63 @@ const config = {
 
 export const styles = {
   global: (props) => ({
+    ":root": {
+      "--brand-color": localStorage.getItem("theme_color") || "#00ff9c",
+    },
     body: {
-      // light: white, dark: pure black
-      bg: mode("white", "#000")(props),
-      color: mode("blackAlpha.900", "whiteAlpha.900")(props),
-      backgroundColor: mode("white", "#000025")(props),
+      // cypherpunk inspired colors
+      bg: mode("#f0f0f0", "#0d0d0d")(props),
+      color: mode("#000", "var(--brand-color)")(props),
+      backgroundColor: mode("#f0f0f0", "rgba(0,0,34)")(props),
+      fontFamily: "'Courier New', monospace",
     },
   }),
 };
 
-export const theme = extendTheme({ config, styles });
+export const theme = extendTheme({
+  config,
+  styles,
+  fonts: {
+    heading: "'Courier New', monospace",
+    body: "'Courier New', monospace",
+  },
+  colors: {
+    cyber: {
+      500: "var(--brand-color)",
+      600: "var(--brand-color)",
+      900: "#0d0d0d",
+    },
+  },
+  components: {
+    Button: {
+      variants: {
+        solid: {
+          bg: "cyber.500",
+          color: "#000",
+          _hover: { bg: "cyber.600" },
+        },
+        outline: {
+          borderColor: "cyber.500",
+          color: "cyber.500",
+          _hover: { bg: "cyber.500", color: "#000" },
+        },
+      },
+    },
+    Input: {
+      variants: {
+        outline: {
+          field: {
+            borderColor: "cyber.500",
+            _focus: {
+              borderColor: "cyber.500",
+              boxShadow: "0 0 0 1px var(--brand-color)",
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 export const markdownTheme = {
   h1: (props) => <Heading as="h1" size="lg" my={4} mt={8} {...props} />,

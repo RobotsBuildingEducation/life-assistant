@@ -39,7 +39,7 @@ export function RoleCanvas({
     roleRef.current = role;
   }, [role]);
 
-  const baseRgb = useColorModeValue("255,255,255", "0,0,40");
+  const baseRgb = useColorModeValue("255,255,255", "0,0,37");
   const fadeColor = `rgba(${baseRgb},${trailOpacity})`;
   const bgColor = useColorModeValue("rgba(255,255,255,1)", "rgba(0,0,0,1)");
 
@@ -379,7 +379,7 @@ export function RoleCanvas({
       style={{
         width: `${200}px`,
         height: `${200}px`,
-        backgroundColor: bgColor,
+        // backgroundColor: bgColor,
         borderRadius: role === "sphere" ? "50%" : "0",
         display: "block",
       }}
