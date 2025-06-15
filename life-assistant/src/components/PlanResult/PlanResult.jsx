@@ -65,10 +65,10 @@ export const PlanResult = ({
     <GlassBox
       mb={6}
       p={4}
-      borderRadius="24px"
+
       // borderWidth="1px"
       // border="1px solid #ff69b4"
-      boxShadow="0px 0px 12px 0px #ff69b4"
+      // boxShadow="0px 0px 12px 0px #ff69b4"
     >
       <Heading size="sm" mb={2}>
         Edit Profile
