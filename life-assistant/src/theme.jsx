@@ -19,7 +19,7 @@ const config = {
 export const styles = {
   global: (props) => ({
     ":root": {
-      "--brand-color": localStorage.getItem("theme_color") || "#00ff9c",
+      "--brand-color": localStorage.getItem("theme_color") || "#7ddbb6",
     },
     body: {
       // cypherpunk inspired colors
