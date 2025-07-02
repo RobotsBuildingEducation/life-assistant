@@ -6,7 +6,7 @@ import { useColorModeValue } from "@chakra-ui/react";
  * RoleCanvas: renders a breathing sphere, a plan mesh, a plate-of-food animation,
  * a 3-bar chart animation, a sleep/crescent moon animation,
  * an emotions/flower animation, a chores single-particle animation,
- * or a counselor/heart animation,
+ * a counselor/heart animation, or a vacation/calendar animation,
  * morphing smoothly when `role` changes.
  */
 export function RoleCanvas({
@@ -56,7 +56,7 @@ export function RoleCanvas({
     const plateR = (Math.min(width, height) / 2) * 0.9;
     const depth = plateR * 2;
     const collapseThreshold = 1 - pauseThreshold;
-    const stepCount = 7;
+    const stepCount = 8;
     const step = 1 / stepCount;
 
     // initialize particles
@@ -164,6 +164,23 @@ export function RoleCanvas({
       });
     }
 
+    // Vacation calendar base
+    const calendarBase = [];
+    const calCols = 7;
+    const calRows = 5;
+    const cw = width / (calCols + 1);
+    const ch = height / (calRows + 1);
+    for (let i = 0; i < particleCount; i++) {
+      const r = Math.floor(i / calCols) % calRows;
+      const c = i % calCols;
+      calendarBase.push({
+        x: cw * (c + 1),
+        y: ch * (r + 1),
+        phase: particles[i].phase,
+        size: particles[i].size,
+      });
+    }
+
     function animate(time) {
       const map = {
         sphere: 0,
@@ -174,6 +191,7 @@ export function RoleCanvas({
         emotions: 5 * step,
         chores: 6 * step,
         counselor: 7 * step,
+        vacation: 8 * step,
       };
       const target = map[roleRef.current] ?? 0;
       progressRef.current += (target - progressRef.current) * transitionEase;
@@ -288,6 +306,12 @@ export function RoleCanvas({
         const counY = baseY + noise2D(hb.phase + 100, time * 0.0003) * 2;
         const counR = hb.size;
 
+        // Vacation coordinates
+        const vb = calendarBase[i];
+        const vacX = vb.x + noise2D(vb.phase + 110, time * 0.0005) * 2;
+        const vacY = vb.y + noise2D(vb.phase + 120, time * 0.0005) * 2;
+        const vacR = vb.size;
+
         // Interpolate between roles
         let x, y, r;
         if (prog < step) {
@@ -322,13 +346,18 @@ export function RoleCanvas({
           r = emoR;
         } else if (prog < 7 * step) {
           const t = (prog - 6 * step) / step;
-          x = counX;
-          y = counY;
-          r = counR;
+          x = counX + (vacX - counX) * t;
+          y = counY + (vacY - counY) * t;
+          r = counR + (vacR - counR) * t;
+        } else if (prog < 8 * step) {
+          const t = (prog - 7 * step) / step;
+          x = vacX;
+          y = vacY;
+          r = vacR;
         } else {
-          x = counX;
-          y = counY;
-          r = counR;
+          x = vacX;
+          y = vacY;
+          r = vacR;
         }
 
         ctx.beginPath();
