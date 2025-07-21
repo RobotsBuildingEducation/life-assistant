@@ -78,7 +78,7 @@ export const fieldOptions = [
 ];
 const debtFields = ["collegeDebt", "creditCardDebt"];
 
-const BudgetTool = () => {
+const BudgetTool = ({ userDoc }) => {
   const npub = localStorage.getItem("local_npub");
   const [activeFields, setActiveFields] = useState([]);
   const [budgetData, setBudgetData] = useState({ financialGoals: "" });
@@ -90,10 +90,14 @@ const BudgetTool = () => {
 
   useEffect(() => {
     (async () => {
-      const userRef = doc(database, "users", npub);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data().budgetPreferences || {};
+      let baseDoc = userDoc;
+      if (!baseDoc) {
+        const userRef = doc(database, "users", npub);
+        const userSnap = await getDoc(userRef);
+        baseDoc = userSnap.exists() ? userSnap.data() : null;
+      }
+      if (baseDoc) {
+        const data = baseDoc.budgetPreferences || {};
         setBudgetData({ financialGoals: "", ...data });
         const keys = Object.keys(data).filter((k) => k !== "financialGoals");
         setActiveFields(keys);
@@ -140,6 +144,7 @@ const BudgetTool = () => {
       }),
     ];
     const prompt =
+      `User Profile:\n${JSON.stringify(userDoc || {}, null, 2)}\n\n` +
       `User Financial Data:\n${lines.join("\n")}\n\n` +
       `Provide clear, actionable suggestions to improve savings and optimize expenses based on the above data.`;
 

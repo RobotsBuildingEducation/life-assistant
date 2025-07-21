@@ -79,7 +79,7 @@ const choreModel = getGenerativeModel(vertexAI, {
 
 /* ---------- helpers ---------- */
 
-const buildPrompt = (historyDocs) => {
+const buildPrompt = (historyDocs, userDoc) => {
   const recent = new Set();
   historyDocs
     .slice(0, 5)
@@ -96,16 +96,16 @@ const buildPrompt = (historyDocs) => {
     (k) => `**${pretty(k)}**\n- ${choreSet[k].join("\n- ")}`
   ).join("\n\n");
 
-  return `Select ONE chore per bucket.\n${avoid}
-  
+  return `User Profile:\n${JSON.stringify(userDoc || {}, null, 2)}\n\nSelect ONE chore per bucket.\n${avoid}
+
   Include a "summary" that is a brief uplifting sentence (≤ 140 characters) about today's list. No emojis.
 
   Return JSON only.\n\n${options}`;
 };
 
-const fetchListFromGemini = async (historyDocs, maxTries = 3) => {
+const fetchListFromGemini = async (historyDocs, userDoc, maxTries = 3) => {
   for (let i = 0; i < maxTries; i++) {
-    const prompt = buildPrompt(historyDocs);
+    const prompt = buildPrompt(historyDocs, userDoc);
     const stream = await choreModel.generateContentStream(prompt);
     let raw = "";
     for await (const chunk of stream.stream) raw += chunk.text();
@@ -166,7 +166,7 @@ export const MotionBubble = ({ children, done }) => {
 
 /* ---------- component ---------- */
 
-export default function ChoreManager() {
+export default function ChoreManager({ userDoc }) {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const npub = localStorage.getItem("local_npub");
@@ -222,7 +222,7 @@ export default function ChoreManager() {
   const generateChores = async () => {
     setGenerating(true);
     try {
-      const ai = await fetchListFromGemini(history);
+      const ai = await fetchListFromGemini(history, userDoc);
       if (!ai) throw new Error("Gemini kept producing duplicates—try again.");
 
       // write to Firestore (serverTimestamp) but also push local copy immediately

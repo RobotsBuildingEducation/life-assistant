@@ -155,7 +155,8 @@ export const RiseUpAnimation = ({ children, speed = "0.15s" }) => {
   return (
     <Box
       display="flex"
-      justifyContent={"center"}
+      flexDirection="column"
+      alignItems="center"
       animation={`${riseAnimation} ${speed} ease-in-out`} // Apply the animation with dynamic speed
     >
       {children}

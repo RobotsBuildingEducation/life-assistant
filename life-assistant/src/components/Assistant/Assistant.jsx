@@ -265,17 +265,11 @@ export const Assistant = () => {
       const memoryContext = memories
         .map((m) => `Day ${m.dayNumber}: ${m.suggestion}`)
         .join("\n");
-      const prompt = `
-Day ${dayNumber}
-Previous progress:
-${memoryContext}
-
-User Goals: "${userDoc.goals}";
-Responsibilities: "${userDoc.responsibilities}";
-Diet: "${userDoc.diet}";
-Education: "${userDoc.education}".
-
-Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep it brief and format in markdown using ordered lists.`;
+      const prompt = `User Profile:\n${JSON.stringify(
+        userDoc,
+        null,
+        2
+      )}\n\nDay ${dayNumber}\nPrevious progress:\n${memoryContext}\n\nPlease write a concise, actionable plan for Day ${dayNumber} in plain text. Keep it brief and format in markdown using ordered lists.`;
 
       const stream = await planModel.generateContentStream(prompt);
       let accumulated = "";
@@ -328,10 +322,11 @@ Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep
     setRecipes([]);
 
     try {
-      const prompt = `
-
-The user has included some data about their diet: "${userDoc.diet}";
-Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include:
+      const prompt = `User Profile:\n${JSON.stringify(
+        userDoc,
+        null,
+        2
+      )}\n\nGenerate a JSON with a "recipes" array of 5 meal ideas based on the user's diet preferences. Each item should include:
 - name
 - description
 - ingredients
@@ -386,7 +381,9 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
         )}
         <Menu mb={6}>
           <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-            Select Action
+            {role === 'sphere'
+              ? 'Chore Manager'
+              : role.charAt(0).toUpperCase() + role.slice(1)}
           </MenuButton>
           <br />
           <br />
@@ -555,19 +552,24 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
         />
       )}
 
-      {showEmotionUI && <EmotionTracker visible={showEmotionUI} />}
-
-      {showRelationshipUI && (
-        <RelationshipCounselor onClose={() => setShowRelationshipUI(false)} />
+      {showEmotionUI && (
+        <EmotionTracker visible={showEmotionUI} userDoc={userDoc} />
       )}
 
-      {showVacationUI && <VacationPlanner />}
+      {showRelationshipUI && (
+        <RelationshipCounselor
+          userDoc={userDoc}
+          onClose={() => setShowRelationshipUI(false)}
+        />
+      )}
+
+      {showVacationUI && <VacationPlanner userDoc={userDoc} />}
 
       {showChoreUI && <ChoreManager userDoc={userDoc} />}
 
       {recipes.length > 0 && <MealIdeas recipes={recipes} />}
 
-      {showBudgetUI && <BudgetTool />}
+      {showBudgetUI && <BudgetTool userDoc={userDoc} />}
     </Box>
   );
 };
