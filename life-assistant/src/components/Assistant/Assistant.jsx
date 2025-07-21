@@ -103,6 +103,28 @@ export const Assistant = () => {
   const [roleReason, setRoleReason] = useState("");
 
   const [role, setRole] = useState("chores");
+  const ALL_ROLES = [
+    "plan",
+    "meals",
+    "finance",
+    "sleep",
+    "emotions",
+    "counselor",
+    "vacation",
+    "chores",
+  ];
+  const [roleHistory, setRoleHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem("roleHistory");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("roleHistory", JSON.stringify(roleHistory));
+  }, [roleHistory]);
 
   useEffect(() => {
     (async () => {
@@ -134,7 +156,13 @@ export const Assistant = () => {
     if (!userDoc) return;
     (async () => {
       try {
-        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: plan, meals, finance, sleep, emotions, counselor, vacation, chores. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
+        let history = roleHistory;
+        if (history.length >= ALL_ROLES.length) {
+          history = [];
+          setRoleHistory([]);
+        }
+        const remaining = ALL_ROLES.filter((r) => !history.includes(r));
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: ${ALL_ROLES.join(", ")}. Avoid choosing from: ${history.join(", ") || "none"}. Choose from: ${remaining.join(", ")}. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
           userDoc,
           null,
           2
@@ -147,18 +175,18 @@ export const Assistant = () => {
         }
         let parsed;
 
-        console.log("raw", raw);
         try {
           parsed = JSON.parse(raw);
-          console.log("parsed", parsed);
-        } catch (error) {
-          console.log("error", error);
-          console.log("{error}", { error });
+        } catch {
           parsed = { choice: raw.trim().toLowerCase(), reason: "" };
-          console.log("parsedx", parsed);
         }
+        const suggested = parsed.choice;
         setRoleReason(parsed.reason || "");
-        applyRole(parsed.choice);
+        const choice = remaining.includes(suggested)
+          ? suggested
+          : remaining[0] || suggested;
+        setRoleHistory((prev) => [...prev, choice]);
+        applyRole(choice);
       } catch (err) {
         console.error("role suggestion error", err);
       } finally {
