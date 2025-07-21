@@ -10,6 +10,8 @@ import {
   MenuList,
   MenuItem,
   Text,
+  IconButton,
+  Flex,
 } from "@chakra-ui/react";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database, Schema } from "../../firebaseResources/config";
@@ -28,7 +30,8 @@ import MealIdeas from "../MealIdeas/MealIdeas";
 import BudgetTool from "../BudgetTool/BudgetTool";
 import { RelationshipCounselor } from "../RelatonshipCounselor/RelationshipCounselor";
 import VacationPlanner from "../VacationPlanner/VacationPlanner";
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, EditIcon } from "@chakra-ui/icons";
+import ProfileEditor from "../ProfileEditor/ProfileEditor";
 import { PlanResult } from "../PlanResult/PlanResult";
 import { FadeInComponent, markdownTheme, RiseUpAnimation } from "../../theme";
 import ChoreManager from "../ChoreManager/ChoreManager";
@@ -93,6 +96,7 @@ export const Assistant = () => {
   const [showRelationshipUI, setShowRelationshipUI] = useState(false);
   const [showChoreUI, setShowChoreUI] = useState(false);
   const [showVacationUI, setShowVacationUI] = useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   const [autoLoading, setAutoLoading] = useState(true);
 
@@ -359,35 +363,34 @@ export const Assistant = () => {
       <RiseUpAnimation speed="3s">
         <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
       </RiseUpAnimation>
+      {showProfileEditor && (
+        <ProfileEditor
+          userDoc={userDoc}
+          onClose={() => setShowProfileEditor(false)}
+          onSave={(data) =>
+            setUserDoc((prev) => ({
+              ...prev,
+              ...data,
+            }))
+          }
+        />
+      )}
       <br />
 
       <FadeInComponent speed="0.5s">
-        <Heading mb={4}>
-          Personal Assistant{" "}
-          {memories.length > 0 && (
-            <Text fontSize="sm">Day {memories.length}</Text>
-          )}
-        </Heading>
-      </FadeInComponent>
-
-      <RiseUpAnimation speed="0.2s">
-        <Text mb={2} fontSize="sm">
-          Here is what I suggest today or you can choose on your own
-        </Text>
-        {roleReason && (
-          <Text mb={2} fontSize="xs" color="gray.500">
-            {roleReason}
-          </Text>
-        )}
-        <Menu mb={6}>
-          <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-            {role === 'sphere'
-              ? 'Chore Manager'
-              : role.charAt(0).toUpperCase() + role.slice(1)}
-          </MenuButton>
-          <br />
-          <br />
-          <MenuList>
+        <Flex alignItems="center" mb={4}>
+          <Heading as="h2" size="lg">
+            Personal Assistant
+          </Heading>
+          <Menu>
+            <MenuButton
+              as={IconButton}
+              icon={<ChevronDownIcon />}
+              variant="ghost"
+              size="sm"
+              ml={2}
+            />
+            <MenuList>
             <MenuItem
               p={4}
               onClick={() => {
@@ -518,7 +521,31 @@ export const Assistant = () => {
               Chore Manager
             </MenuItem>
           </MenuList>
-        </Menu>
+          </Menu>
+          <IconButton
+            icon={<EditIcon />}
+            variant="ghost"
+            size="sm"
+            ml={2}
+            onClick={() => setShowProfileEditor(true)}
+          />
+          {memories.length > 0 && (
+            <Text fontSize="sm" ml={2}>
+              Day {memories.length}
+            </Text>
+          )}
+        </Flex>
+      </FadeInComponent>
+
+      <RiseUpAnimation speed="0.2s">
+        <Text mb={2} fontSize="sm">
+          Here is what I suggest today or you can choose on your own
+        </Text>
+        {roleReason && (
+          <Text mb={2} fontSize="xs" color="gray.500">
+            {roleReason}
+          </Text>
+        )}
       </RiseUpAnimation>
       <br />
 
