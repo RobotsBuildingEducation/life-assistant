@@ -64,6 +64,10 @@ const planModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
 
+const thinkingModel = getGenerativeModel(vertexAI, {
+  model: "gemini-2.5-flash",
+});
+
 export const Assistant = () => {
   const [userDoc, setUserDoc] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -90,6 +94,10 @@ export const Assistant = () => {
   const [showChoreUI, setShowChoreUI] = useState(false);
   const [showVacationUI, setShowVacationUI] = useState(false);
 
+  const [autoLoading, setAutoLoading] = useState(true);
+
+  const [roleReason, setRoleReason] = useState("");
+
   const [role, setRole] = useState("chores");
 
   useEffect(() => {
@@ -115,6 +123,43 @@ export const Assistant = () => {
       const memSnap = await getDocs(q);
       setMemories(memSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoadingMemories(false);
+    })();
+  }, [userDoc]);
+
+  useEffect(() => {
+    if (!userDoc) return;
+    (async () => {
+      try {
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: plan, meals, finance, sleep, emotions, counselor, vacation, chores. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
+          userDoc,
+          null,
+          2
+        )}`;
+
+        const stream = await thinkingModel.generateContentStream(prompt);
+        let raw = "";
+        for await (const chunk of stream.stream) {
+          raw += chunk.text();
+        }
+        let parsed;
+
+        console.log("raw", raw);
+        try {
+          parsed = JSON.parse(raw);
+          console.log("parsed", parsed);
+        } catch (error) {
+          console.log("error", error);
+          console.log("{error}", { error });
+          parsed = { choice: raw.trim().toLowerCase(), reason: "" };
+          console.log("parsedx", parsed);
+        }
+        setRoleReason(parsed.reason || "");
+        applyRole(parsed.choice);
+      } catch (err) {
+        console.error("role suggestion error", err);
+      } finally {
+        setAutoLoading(false);
+      }
     })();
   }, [userDoc]);
 
@@ -155,6 +200,52 @@ export const Assistant = () => {
     setSleepMinute(now.getMinutes().toString().padStart(2, "0"));
     setSleepAmPm(now.getHours() >= 12 ? "PM" : "AM");
     calculateCycles(now);
+  };
+
+  const resetUI = () => {
+    setShowPlanUI(false);
+    setShowSleepUI(false);
+    setShowEmotionUI(false);
+    setShowBudgetUI(false);
+    setShowRelationshipUI(false);
+    setShowChoreUI(false);
+    setShowVacationUI(false);
+    setPlanText("");
+    setBestSuggestion("");
+    setRecipes([]);
+  };
+
+  const applyRole = (r) => {
+    resetUI();
+    switch (r) {
+      case "plan":
+        setShowPlanUI(true);
+        break;
+      case "meals":
+        generateMeals();
+        break;
+      case "finance":
+        setShowBudgetUI(true);
+        break;
+      case "sleep":
+        setShowSleepUI(true);
+        break;
+      case "emotions":
+        setShowEmotionUI(true);
+        break;
+      case "counselor":
+        setShowRelationshipUI(true);
+        break;
+      case "vacation":
+        setShowVacationUI(true);
+        break;
+      case "chores":
+        setShowChoreUI(true);
+        break;
+      default:
+        break;
+    }
+    setRole(r === "chores" ? "sphere" : r);
   };
 
   const generatePlan = async () => {
@@ -285,6 +376,14 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
       </FadeInComponent>
 
       <RiseUpAnimation speed="0.2s">
+        <Text mb={2} fontSize="sm">
+          Here is what I suggest today or you can choose on your own
+        </Text>
+        {roleReason && (
+          <Text mb={2} fontSize="xs" color="gray.500">
+            {roleReason}
+          </Text>
+        )}
         <Menu mb={6}>
           <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
             Select Action
