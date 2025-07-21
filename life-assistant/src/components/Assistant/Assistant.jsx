@@ -130,7 +130,7 @@ export const Assistant = () => {
     if (!userDoc) return;
     (async () => {
       try {
-        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: plan, meals, finance, sleep, emotions, counselor, vacation, chores.\n\nUSER:\n${JSON.stringify(
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: plan, meals, finance, sleep, emotions, counselor, vacation, chores. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
           userDoc,
           null,
           2
@@ -142,10 +142,16 @@ export const Assistant = () => {
           raw += chunk.text();
         }
         let parsed;
+
+        console.log("raw", raw);
         try {
           parsed = JSON.parse(raw);
-        } catch {
+          console.log("parsed", parsed);
+        } catch (error) {
+          console.log("error", error);
+          console.log("{error}", { error });
           parsed = { choice: raw.trim().toLowerCase(), reason: "" };
+          console.log("parsedx", parsed);
         }
         setRoleReason(parsed.reason || "");
         applyRole(parsed.choice);
