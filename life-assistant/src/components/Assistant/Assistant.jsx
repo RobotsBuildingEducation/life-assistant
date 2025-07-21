@@ -65,7 +65,7 @@ const planModel = getGenerativeModel(vertexAI, {
 });
 
 const thinkingModel = getGenerativeModel(vertexAI, {
-  model: "gemini-2.0-pro",
+  model: "gemini-2.5-flash",
 });
 
 export const Assistant = () => {
@@ -135,13 +135,17 @@ export const Assistant = () => {
           null,
           2
         )}`;
-        const result = await thinkingModel.generateContent(prompt);
-        const text = result.text();
+
+        const stream = await thinkingModel.generateContentStream(prompt);
+        let raw = "";
+        for await (const chunk of stream.stream) {
+          raw += chunk.text();
+        }
         let parsed;
         try {
-          parsed = JSON.parse(text);
+          parsed = JSON.parse(raw);
         } catch {
-          parsed = { choice: text.trim().toLowerCase(), reason: "" };
+          parsed = { choice: raw.trim().toLowerCase(), reason: "" };
         }
         setRoleReason(parsed.reason || "");
         applyRole(parsed.choice);
