@@ -27,6 +27,7 @@ import SleepCycleCalculator from "../SleepCycleCalculator/SleepCycleCalculator";
 import MealIdeas from "../MealIdeas/MealIdeas";
 import BudgetTool from "../BudgetTool/BudgetTool";
 import { RelationshipCounselor } from "../RelatonshipCounselor/RelationshipCounselor";
+import VacationPlanner from "../VacationPlanner/VacationPlanner";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { PlanResult } from "../PlanResult/PlanResult";
 import { FadeInComponent, markdownTheme, RiseUpAnimation } from "../../theme";
@@ -87,6 +88,7 @@ export const Assistant = () => {
   const [showBudgetUI, setShowBudgetUI] = useState(false);
   const [showRelationshipUI, setShowRelationshipUI] = useState(false);
   const [showChoreUI, setShowChoreUI] = useState(false);
+  const [showVacationUI, setShowVacationUI] = useState(false);
 
   const [role, setRole] = useState("chores");
 
@@ -227,6 +229,7 @@ Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep
     setShowBudgetUI(false);
     setShowRelationshipUI(false);
     setShowChoreUI(false);
+    setShowVacationUI(false);
     setPlanText("");
     setBestSuggestion("");
     if (!userDoc) return;
@@ -299,6 +302,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowEmotionUI(false);
                 setShowRelationshipUI(false);
                 setShowChoreUI(false);
+                setShowVacationUI(false);
                 setRecipes([]);
               }}
               isDisabled={loadingPlan}
@@ -318,6 +322,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowEmotionUI(false);
                 setShowRelationshipUI(false);
                 setShowChoreUI(false);
+                setShowVacationUI(false);
                 setPlanText("");
                 setBestSuggestion("");
                 setRecipes([]);
@@ -335,6 +340,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowBudgetUI(false);
                 setShowRelationshipUI(false);
                 setShowChoreUI(false);
+                setShowVacationUI(false);
                 setPlanText("");
                 setBestSuggestion("");
                 setRecipes([]);
@@ -352,6 +358,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowBudgetUI(false);
                 setShowRelationshipUI(false);
                 setShowChoreUI(false);
+                setShowVacationUI(false);
                 setPlanText("");
                 setBestSuggestion("");
                 setRecipes([]);
@@ -370,12 +377,31 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowSleepUI(false);
                 setShowEmotionUI(false);
                 setShowChoreUI(false);
+                setShowVacationUI(false);
                 setPlanText("");
                 setBestSuggestion("");
                 setRecipes([]);
               }}
             >
               Relationship Counselor
+            </MenuItem>
+            <MenuItem
+              p={4}
+              onClick={() => {
+                setRole("vacation");
+                setShowPlanUI(false);
+                setShowSleepUI(false);
+                setShowEmotionUI(false);
+                setShowBudgetUI(false);
+                setShowRelationshipUI(false);
+                setShowChoreUI(false);
+                setShowVacationUI(true);
+                setPlanText("");
+                setBestSuggestion("");
+                setRecipes([]);
+              }}
+            >
+              Vacation Planner
             </MenuItem>
             <MenuItem
               p={4}
@@ -387,6 +413,7 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
                 setShowBudgetUI(false);
                 setShowRelationshipUI(false);
                 setShowChoreUI(true);
+                setShowVacationUI(false);
                 setPlanText("");
                 setBestSuggestion("");
                 setRecipes([]);
@@ -434,6 +461,8 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
       {showRelationshipUI && (
         <RelationshipCounselor onClose={() => setShowRelationshipUI(false)} />
       )}
+
+      {showVacationUI && <VacationPlanner />}
 
       {showChoreUI && <ChoreManager userDoc={userDoc} />}
 

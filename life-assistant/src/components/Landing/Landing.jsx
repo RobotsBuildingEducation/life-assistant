@@ -31,6 +31,7 @@ export const Landing = () => {
     "sleep",
     "emotions",
     "counselor",
+    "vacation",
   ];
 
   useEffect(() => {
