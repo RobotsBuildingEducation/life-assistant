@@ -262,6 +262,7 @@ export const Assistant = () => {
     switch (r) {
       case "plan":
         setShowPlanUI(true);
+        generatePlan();
         break;
       case "meals":
         generateMeals();
@@ -644,7 +645,7 @@ export const Assistant = () => {
 
       {recipes.length > 0 && <MealIdeas recipes={recipes} />}
 
-      {showBudgetUI && <BudgetTool userDoc={userDoc} />}
+      {showBudgetUI && <BudgetTool userDoc={userDoc} auto />}
     </Box>
   );
 };

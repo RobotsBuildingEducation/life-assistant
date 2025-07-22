@@ -78,7 +78,7 @@ export const fieldOptions = [
 ];
 const debtFields = ["collegeDebt", "creditCardDebt"];
 
-const BudgetTool = ({ userDoc }) => {
+const BudgetTool = ({ userDoc, auto = false }) => {
   const npub = localStorage.getItem("local_npub");
   const [activeFields, setActiveFields] = useState([]);
   const [budgetData, setBudgetData] = useState({ financialGoals: "" });
@@ -108,6 +108,13 @@ const BudgetTool = ({ userDoc }) => {
       setLoadingSaved(false);
     })();
   }, [npub]);
+
+  useEffect(() => {
+    if (auto && activeFields.length > 0 && !suggestions) {
+      generateSuggestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, activeFields.length]);
 
   const addField = (key) => setActiveFields((prev) => [...prev, key]);
   const removeField = (key) => {
@@ -175,88 +182,93 @@ const BudgetTool = ({ userDoc }) => {
       </Heading>
 
       <VStack spacing={4} align="stretch">
-        <FormControl isRequired>
-          <FormLabel>Financial goals</FormLabel>
-          <Input
-            placeholder="e.g. Save for vacation"
-            value={budgetData.financialGoals}
-            onChange={(e) =>
-              setBudgetData((prev) => ({
-                ...prev,
-                financialGoals: e.target.value,
-              }))
-            }
-          />
-        </FormControl>
-
-        <Box>
-          <Text fontWeight="semibold">Add Fields:</Text>
-          <Wrap spacing={4} mt={2}>
-            {fieldOptions
-              .filter((opt) => !activeFields.includes(opt.key))
-              .map((opt) => (
-                <WrapItem key={opt.key}>
-                  <Button size="lg" onClick={() => addField(opt.key)}>
-                    {opt?.label}
-                  </Button>
-                </WrapItem>
-              ))}
-          </Wrap>
-        </Box>
-
-        {activeFields.map((key) => {
-          const opt = fieldOptions.find((o) => o.key === key);
-          return (
-            <FormControl key={key} isRequired>
-              <FormLabel>{opt?.label}</FormLabel>
-              <HStack>
-                <Input
-                  flex="1"
-                  placeholder={opt?.placeholder}
-                  value={budgetData[key] || ""}
-                  onChange={(e) =>
-                    setBudgetData((prev) => ({
-                      ...prev,
-                      [key]: e.target.value,
-                    }))
-                  }
-                />
-                <CloseButton onClick={() => removeField(key)} />
-              </HStack>
+        {!auto && (
+          <>
+            <FormControl isRequired>
+              <FormLabel>Financial goals</FormLabel>
+              <Input
+                placeholder="e.g. Save for vacation"
+                value={budgetData.financialGoals}
+                onChange={(e) =>
+                  setBudgetData((prev) => ({
+                    ...prev,
+                    financialGoals: e.target.value,
+                  }))
+                }
+              />
             </FormControl>
-          );
-        })}
 
-        {activeFields
-          .filter((key) => debtFields.includes(key))
-          .map((key) => {
-            const opt = fieldOptions.find((o) => o.key === key);
-            const rateKey = `${key}Rate`;
-            return (
-              <FormControl key={rateKey} isRequired>
-                <FormLabel>Interest rate for {opt?.label} (%)</FormLabel>
-                <Input
-                  placeholder="e.g. 5"
-                  value={budgetData[rateKey] || ""}
-                  onChange={(e) =>
-                    setBudgetData((prev) => ({
-                      ...prev,
-                      [rateKey]: e.target.value,
-                    }))
-                  }
-                />
-              </FormControl>
-            );
-          })}
+            <Box>
+              <Text fontWeight="semibold">Add Fields:</Text>
+              <Wrap spacing={4} mt={2}>
+                {fieldOptions
+                  .filter((opt) => !activeFields.includes(opt.key))
+                  .map((opt) => (
+                    <WrapItem key={opt.key}>
+                      <Button size="lg" onClick={() => addField(opt.key)}>
+                        {opt?.label}
+                      </Button>
+                    </WrapItem>
+                  ))}
+              </Wrap>
+            </Box>
 
-        <Button
-          onClick={generateSuggestions}
-          isLoading={loading}
-          colorScheme="teal"
-          isDisabled={!budgetData.financialGoals || activeFields.length === 0}
-        >
-          Summarize Suggestions
-        </Button>
+            {activeFields.map((key) => {
+              const opt = fieldOptions.find((o) => o.key === key);
+              return (
+                <FormControl key={key} isRequired>
+                  <FormLabel>{opt?.label}</FormLabel>
+                  <HStack>
+                    <Input
+                      flex="1"
+                      placeholder={opt?.placeholder}
+                      value={budgetData[key] || ""}
+                      onChange={(e) =>
+                        setBudgetData((prev) => ({
+                          ...prev,
+                          [key]: e.target.value,
+                        }))
+                      }
+                    />
+                    <CloseButton onClick={() => removeField(key)} />
+                  </HStack>
+                </FormControl>
+              );
+            })}
+
+            {activeFields
+              .filter((key) => debtFields.includes(key))
+              .map((key) => {
+                const opt = fieldOptions.find((o) => o.key === key);
+                const rateKey = `${key}Rate`;
+                return (
+                  <FormControl key={rateKey} isRequired>
+                    <FormLabel>Interest rate for {opt?.label} (%)</FormLabel>
+                    <Input
+                      placeholder="e.g. 5"
+                      value={budgetData[rateKey] || ""}
+                      onChange={(e) =>
+                        setBudgetData((prev) => ({
+                          ...prev,
+                          [rateKey]: e.target.value,
+                        }))
+                      }
+                    />
+                  </FormControl>
+                );
+              })}
+
+            <Button
+              onClick={generateSuggestions}
+              isLoading={loading}
+              colorScheme="teal"
+              isDisabled={!budgetData.financialGoals || activeFields.length === 0}
+            >
+              Summarize Suggestions
+            </Button>
+          </>
+        )}
+
       </VStack>
 
       <Box mt={6}>
