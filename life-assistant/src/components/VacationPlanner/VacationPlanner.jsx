@@ -10,7 +10,7 @@ const vacationModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
 
-const VacationPlanner = () => {
+const VacationPlanner = ({ userDoc }) => {
   const [idea, setIdea] = useState("");
   const [plan, setPlan] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,11 @@ const VacationPlanner = () => {
     setLoading(true);
     setPlan("");
     try {
-      const prompt = `Create a short vacation plan in markdown based on: "${idea}".`;
+      const prompt = `User Profile:\n${JSON.stringify(
+        userDoc || {},
+        null,
+        2
+      )}\n\nCreate a short vacation plan in markdown based on: "${idea}".`;
       const stream = await vacationModel.generateContentStream(prompt);
       let accumulated = "";
       for await (const chunk of stream.stream) {

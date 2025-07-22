@@ -18,7 +18,7 @@ import { vertexAI } from "../../firebaseResources/config";
 import { markdownTheme } from "../../theme";
 import GlassBox from "../GlassBox";
 
-export const RelationshipCounselor = ({ onClose }) => {
+export const RelationshipCounselor = ({ onClose, userDoc }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -82,7 +82,11 @@ export const RelationshipCounselor = ({ onClose }) => {
 
     try {
       const basePrompt =
-        "Analyze this conversation screenshot. Identify tone, emotions, and provide suggestions to improve communication.";
+        `Analyze this conversation screenshot. Identify tone, emotions, and provide suggestions to improve communication.\n\nUser Profile:\n${JSON.stringify(
+          userDoc || {},
+          null,
+          2
+        )}`;
       const promptText = additionalContext
         ? `${additionalContext}\n\n${basePrompt}`
         : basePrompt;

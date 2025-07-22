@@ -10,6 +10,10 @@ import {
   MenuList,
   MenuItem,
   Text,
+  IconButton,
+  Flex,
+  VStack,
+  HStack,
 } from "@chakra-ui/react";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database, Schema } from "../../firebaseResources/config";
@@ -28,7 +32,8 @@ import MealIdeas from "../MealIdeas/MealIdeas";
 import BudgetTool from "../BudgetTool/BudgetTool";
 import { RelationshipCounselor } from "../RelatonshipCounselor/RelationshipCounselor";
 import VacationPlanner from "../VacationPlanner/VacationPlanner";
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, EditIcon } from "@chakra-ui/icons";
+import ProfileEditor from "../ProfileEditor/ProfileEditor";
 import { PlanResult } from "../PlanResult/PlanResult";
 import { FadeInComponent, markdownTheme, RiseUpAnimation } from "../../theme";
 import ChoreManager from "../ChoreManager/ChoreManager";
@@ -93,12 +98,35 @@ export const Assistant = () => {
   const [showRelationshipUI, setShowRelationshipUI] = useState(false);
   const [showChoreUI, setShowChoreUI] = useState(false);
   const [showVacationUI, setShowVacationUI] = useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   const [autoLoading, setAutoLoading] = useState(true);
 
   const [roleReason, setRoleReason] = useState("");
 
   const [role, setRole] = useState("chores");
+  const ALL_ROLES = [
+    "plan",
+    "meals",
+    "finance",
+    "sleep",
+    "emotions",
+    "counselor",
+    "vacation",
+    "chores",
+  ];
+  const [roleHistory, setRoleHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem("roleHistory");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("roleHistory", JSON.stringify(roleHistory));
+  }, [roleHistory]);
 
   useEffect(() => {
     (async () => {
@@ -127,14 +155,29 @@ export const Assistant = () => {
   }, [userDoc]);
 
   useEffect(() => {
+    return;
     if (!userDoc) return;
     (async () => {
       try {
-        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: plan, meals, finance, sleep, emotions, counselor, vacation, chores. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
+        let history = roleHistory;
+        if (history.length >= ALL_ROLES.length) {
+          history = [];
+          setRoleHistory([]);
+        }
+        const remaining = ALL_ROLES.filter((r) => !history.includes(r));
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: ${ALL_ROLES.join(
+          ", "
+        )}. Avoid choosing from: ${
+          history.join(", ") || "none"
+        }. Choose from: ${remaining.join(
+          ", "
+        )}. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
           userDoc,
           null,
           2
         )}`;
+
+        console.log("x", userDoc);
 
         const stream = await thinkingModel.generateContentStream(prompt);
         let raw = "";
@@ -143,18 +186,18 @@ export const Assistant = () => {
         }
         let parsed;
 
-        console.log("raw", raw);
         try {
           parsed = JSON.parse(raw);
-          console.log("parsed", parsed);
-        } catch (error) {
-          console.log("error", error);
-          console.log("{error}", { error });
+        } catch {
           parsed = { choice: raw.trim().toLowerCase(), reason: "" };
-          console.log("parsedx", parsed);
         }
+        const suggested = parsed.choice;
         setRoleReason(parsed.reason || "");
-        applyRole(parsed.choice);
+        const choice = remaining.includes(suggested)
+          ? suggested
+          : remaining[0] || suggested;
+        setRoleHistory((prev) => [...prev, choice]);
+        applyRole(choice);
       } catch (err) {
         console.error("role suggestion error", err);
       } finally {
@@ -265,17 +308,11 @@ export const Assistant = () => {
       const memoryContext = memories
         .map((m) => `Day ${m.dayNumber}: ${m.suggestion}`)
         .join("\n");
-      const prompt = `
-Day ${dayNumber}
-Previous progress:
-${memoryContext}
-
-User Goals: "${userDoc.goals}";
-Responsibilities: "${userDoc.responsibilities}";
-Diet: "${userDoc.diet}";
-Education: "${userDoc.education}".
-
-Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep it brief and format in markdown using ordered lists.`;
+      const prompt = `User Profile:\n${JSON.stringify(
+        userDoc,
+        null,
+        2
+      )}\n\nDay ${dayNumber}\nPrevious progress:\n${memoryContext}\n\nPlease write a concise, actionable plan for Day ${dayNumber} in plain text. Keep it brief and format in markdown using ordered lists.`;
 
       const stream = await planModel.generateContentStream(prompt);
       let accumulated = "";
@@ -328,10 +365,11 @@ Please write a concise, actionable plan for Day ${dayNumber} in plain text. Keep
     setRecipes([]);
 
     try {
-      const prompt = `
-
-The user has included some data about their diet: "${userDoc.diet}";
-Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include:
+      const prompt = `User Profile:\n${JSON.stringify(
+        userDoc,
+        null,
+        2
+      )}\n\nGenerate a JSON with a "recipes" array of 5 meal ideas based on the user's diet preferences. Each item should include:
 - name
 - description
 - ingredients
@@ -364,164 +402,199 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
       <RiseUpAnimation speed="3s">
         <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
       </RiseUpAnimation>
+      {showProfileEditor && (
+        <ProfileEditor
+          userDoc={userDoc}
+          onClose={() => setShowProfileEditor(false)}
+          onSave={(data) =>
+            setUserDoc((prev) => ({
+              ...prev,
+              ...data,
+            }))
+          }
+        />
+      )}
       <br />
 
       <FadeInComponent speed="0.5s">
-        <Heading mb={4}>
-          Personal Assistant{" "}
+        <Flex alignItems="center" mb={4}>
+          <VStack>
+            <Heading as="h2" size="lg">
+              Personal Assistant
+            </Heading>
+
+            {/* <br />
           {memories.length > 0 && (
-            <Text fontSize="sm">Day {memories.length}</Text>
-          )}
-        </Heading>
+            <Text fontSize="sm" ml={2}>
+              Day {memories.length}
+            </Text>
+          )} */}
+            <HStack>
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  icon={<ChevronDownIcon />}
+                  variant="ghost"
+                  size="sm"
+                  ml={2}
+                />
+                <MenuList>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("plan");
+                      setShowPlanUI(true);
+                      setShowBudgetUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setRecipes([]);
+                    }}
+                    isDisabled={loadingPlan}
+                  >
+                    Create Daily Action
+                  </MenuItem>
+                  <MenuItem
+                    onClick={generateMeals}
+                    isDisabled={loadingMeals}
+                    p={4}
+                  >
+                    Generate Meals
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("finance");
+                      setShowPlanUI(false);
+                      setShowBudgetUI(true);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Financial Planner
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("sleep");
+                      setShowPlanUI(false);
+                      setShowSleepUI(true);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Sleep Cycles
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("emotions");
+                      setShowPlanUI(false);
+                      setShowEmotionUI(true);
+                      setShowSleepUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Emotion Tracker
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("counselor");
+
+                      setShowPlanUI(false);
+                      setShowRelationshipUI(true);
+                      setShowBudgetUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Relationship Counselor
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("vacation");
+                      setShowPlanUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(true);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Vacation Planner
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("sphere");
+                      setShowPlanUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(true);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Chore Manager
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+              <IconButton
+                icon={<EditIcon />}
+                variant="ghost"
+                size="sm"
+                ml={2}
+                onClick={() => setShowProfileEditor(true)}
+              />
+            </HStack>
+          </VStack>
+        </Flex>
       </FadeInComponent>
 
       <RiseUpAnimation speed="0.2s">
         <Text mb={2} fontSize="sm">
-          Here is what I suggest today or you can choose on your own
+          Here is what I suggest today
         </Text>
         {roleReason && (
           <Text mb={2} fontSize="xs" color="gray.500">
             {roleReason}
           </Text>
         )}
-        <Menu mb={6}>
-          <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-            Select Action
-          </MenuButton>
-          <br />
-          <br />
-          <MenuList>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("plan");
-                setShowPlanUI(true);
-                setShowBudgetUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setRecipes([]);
-              }}
-              isDisabled={loadingPlan}
-            >
-              Create Daily Action
-            </MenuItem>
-            <MenuItem onClick={generateMeals} isDisabled={loadingMeals} p={4}>
-              Generate Meals
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("finance");
-                setShowPlanUI(false);
-                setShowBudgetUI(true);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Financial Planner
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("sleep");
-                setShowPlanUI(false);
-                setShowSleepUI(true);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Sleep Cycles
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("emotions");
-                setShowPlanUI(false);
-                setShowEmotionUI(true);
-                setShowSleepUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Emotion Tracker
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("counselor");
-
-                setShowPlanUI(false);
-                setShowRelationshipUI(true);
-                setShowBudgetUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Relationship Counselor
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("vacation");
-                setShowPlanUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(true);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Vacation Planner
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("sphere");
-                setShowPlanUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(true);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Chore Manager
-            </MenuItem>
-          </MenuList>
-        </Menu>
       </RiseUpAnimation>
       <br />
 
@@ -555,19 +628,24 @@ Generate a JSON with a "recipes" array of 5 meal ideas. Each item should include
         />
       )}
 
-      {showEmotionUI && <EmotionTracker visible={showEmotionUI} />}
-
-      {showRelationshipUI && (
-        <RelationshipCounselor onClose={() => setShowRelationshipUI(false)} />
+      {showEmotionUI && (
+        <EmotionTracker visible={showEmotionUI} userDoc={userDoc} />
       )}
 
-      {showVacationUI && <VacationPlanner />}
+      {showRelationshipUI && (
+        <RelationshipCounselor
+          userDoc={userDoc}
+          onClose={() => setShowRelationshipUI(false)}
+        />
+      )}
+
+      {showVacationUI && <VacationPlanner userDoc={userDoc} />}
 
       {showChoreUI && <ChoreManager userDoc={userDoc} />}
 
       {recipes.length > 0 && <MealIdeas recipes={recipes} />}
 
-      {showBudgetUI && <BudgetTool />}
+      {showBudgetUI && <BudgetTool userDoc={userDoc} />}
     </Box>
   );
 };

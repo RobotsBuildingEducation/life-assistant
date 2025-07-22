@@ -26,6 +26,11 @@ const steps = [
     instruction: "Which subjects or skills would you like to learn?",
     placeholder: "e.g. Data science, cooking, time management",
   },
+  {
+    key: "financialGoals",
+    instruction: "What are your financial goals?",
+    placeholder: "e.g. Save for a house, pay off debt",
+  },
 ];
 
 export const Onboarding = () => {

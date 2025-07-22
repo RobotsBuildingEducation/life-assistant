@@ -57,7 +57,7 @@ const aiModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
 
-export default function EmotionTracker({ visible }) {
+export default function EmotionTracker({ visible, userDoc }) {
   const npub = localStorage.getItem("local_npub");
   const [savedEntries, setSavedEntries] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
@@ -109,6 +109,7 @@ export default function EmotionTracker({ visible }) {
     const prompt = customInstructions({
       emotionNote: note,
       selectedEmotion: selected,
+      user: userDoc,
     });
     let raw = "";
     const stream = await aiModel.generateContentStream(prompt);
@@ -142,7 +143,10 @@ export default function EmotionTracker({ visible }) {
   const generateSummary = async () => {
     setLoadingSummary(true);
     setSummary("");
-    const prompt = emotionSummarizer(JSON.stringify(savedEntries));
+    const prompt = emotionSummarizer(
+      JSON.stringify(savedEntries),
+      userDoc
+    );
     let raw = "";
     const stream = await aiModel.generateContentStream(prompt);
     for await (const chunk of stream.stream) {
