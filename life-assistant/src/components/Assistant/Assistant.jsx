@@ -12,6 +12,8 @@ import {
   Text,
   IconButton,
   Flex,
+  VStack,
+  HStack,
 } from "@chakra-ui/react";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI, database, Schema } from "../../firebaseResources/config";
@@ -153,6 +155,7 @@ export const Assistant = () => {
   }, [userDoc]);
 
   useEffect(() => {
+    return;
     if (!userDoc) return;
     (async () => {
       try {
@@ -162,11 +165,19 @@ export const Assistant = () => {
           setRoleHistory([]);
         }
         const remaining = ALL_ROLES.filter((r) => !history.includes(r));
-        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: ${ALL_ROLES.join(", ")}. Avoid choosing from: ${history.join(", ") || "none"}. Choose from: ${remaining.join(", ")}. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: ${ALL_ROLES.join(
+          ", "
+        )}. Avoid choosing from: ${
+          history.join(", ") || "none"
+        }. Choose from: ${remaining.join(
+          ", "
+        )}. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
           userDoc,
           null,
           2
         )}`;
+
+        console.log("x", userDoc);
 
         const stream = await thinkingModel.generateContentStream(prompt);
         let raw = "";
@@ -407,167 +418,177 @@ export const Assistant = () => {
 
       <FadeInComponent speed="0.5s">
         <Flex alignItems="center" mb={4}>
-          <Heading as="h2" size="lg">
-            Personal Assistant
-          </Heading>
-          <Menu>
-            <MenuButton
-              as={IconButton}
-              icon={<ChevronDownIcon />}
-              variant="ghost"
-              size="sm"
-              ml={2}
-            />
-            <MenuList>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("plan");
-                setShowPlanUI(true);
-                setShowBudgetUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setRecipes([]);
-              }}
-              isDisabled={loadingPlan}
-            >
-              Create Daily Action
-            </MenuItem>
-            <MenuItem onClick={generateMeals} isDisabled={loadingMeals} p={4}>
-              Generate Meals
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("finance");
-                setShowPlanUI(false);
-                setShowBudgetUI(true);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Financial Planner
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("sleep");
-                setShowPlanUI(false);
-                setShowSleepUI(true);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Sleep Cycles
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("emotions");
-                setShowPlanUI(false);
-                setShowEmotionUI(true);
-                setShowSleepUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Emotion Tracker
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("counselor");
+          <VStack>
+            <Heading as="h2" size="lg">
+              Personal Assistant
+            </Heading>
 
-                setShowPlanUI(false);
-                setShowRelationshipUI(true);
-                setShowBudgetUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Relationship Counselor
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("vacation");
-                setShowPlanUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(false);
-                setShowVacationUI(true);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Vacation Planner
-            </MenuItem>
-            <MenuItem
-              p={4}
-              onClick={() => {
-                setRole("sphere");
-                setShowPlanUI(false);
-                setShowSleepUI(false);
-                setShowEmotionUI(false);
-                setShowBudgetUI(false);
-                setShowRelationshipUI(false);
-                setShowChoreUI(true);
-                setShowVacationUI(false);
-                setPlanText("");
-                setBestSuggestion("");
-                setRecipes([]);
-              }}
-            >
-              Chore Manager
-            </MenuItem>
-          </MenuList>
-          </Menu>
-          <IconButton
-            icon={<EditIcon />}
-            variant="ghost"
-            size="sm"
-            ml={2}
-            onClick={() => setShowProfileEditor(true)}
-          />
+            {/* <br />
           {memories.length > 0 && (
             <Text fontSize="sm" ml={2}>
               Day {memories.length}
             </Text>
-          )}
+          )} */}
+            <HStack>
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  icon={<ChevronDownIcon />}
+                  variant="ghost"
+                  size="sm"
+                  ml={2}
+                />
+                <MenuList>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("plan");
+                      setShowPlanUI(true);
+                      setShowBudgetUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setRecipes([]);
+                    }}
+                    isDisabled={loadingPlan}
+                  >
+                    Create Daily Action
+                  </MenuItem>
+                  <MenuItem
+                    onClick={generateMeals}
+                    isDisabled={loadingMeals}
+                    p={4}
+                  >
+                    Generate Meals
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("finance");
+                      setShowPlanUI(false);
+                      setShowBudgetUI(true);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Financial Planner
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("sleep");
+                      setShowPlanUI(false);
+                      setShowSleepUI(true);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Sleep Cycles
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("emotions");
+                      setShowPlanUI(false);
+                      setShowEmotionUI(true);
+                      setShowSleepUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Emotion Tracker
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("counselor");
+
+                      setShowPlanUI(false);
+                      setShowRelationshipUI(true);
+                      setShowBudgetUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Relationship Counselor
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("vacation");
+                      setShowPlanUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(false);
+                      setShowVacationUI(true);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Vacation Planner
+                  </MenuItem>
+                  <MenuItem
+                    p={4}
+                    onClick={() => {
+                      setRole("sphere");
+                      setShowPlanUI(false);
+                      setShowSleepUI(false);
+                      setShowEmotionUI(false);
+                      setShowBudgetUI(false);
+                      setShowRelationshipUI(false);
+                      setShowChoreUI(true);
+                      setShowVacationUI(false);
+                      setPlanText("");
+                      setBestSuggestion("");
+                      setRecipes([]);
+                    }}
+                  >
+                    Chore Manager
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+              <IconButton
+                icon={<EditIcon />}
+                variant="ghost"
+                size="sm"
+                ml={2}
+                onClick={() => setShowProfileEditor(true)}
+              />
+            </HStack>
+          </VStack>
         </Flex>
       </FadeInComponent>
 
       <RiseUpAnimation speed="0.2s">
         <Text mb={2} fontSize="sm">
-          Here is what I suggest today or you can choose on your own
+          Here is what I suggest today
         </Text>
         {roleReason && (
           <Text mb={2} fontSize="xs" color="gray.500">
