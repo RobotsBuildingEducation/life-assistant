@@ -155,7 +155,6 @@ export const Assistant = () => {
   }, [userDoc]);
 
   useEffect(() => {
-    return;
     if (!userDoc) return;
     (async () => {
       try {
