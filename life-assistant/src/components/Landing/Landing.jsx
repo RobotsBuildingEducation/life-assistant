@@ -55,16 +55,16 @@ export const Landing = () => {
 
       if (user) {
         if (user.step === "onboarding") {
-          navigate("/onboarding/" + user.onboardingStep);
+          navigate("/archived/onboarding/" + user.onboardingStep);
         } else {
-          navigate("/assistant");
+          navigate("/archived/assistant");
         }
       } else {
         await createUser(
           nostrPubKey,
           authField.includes("nsec") ? "" : authField
         );
-        navigate("/onboarding/" + 1);
+        navigate("/archived/onboarding/" + 1);
       }
     };
 

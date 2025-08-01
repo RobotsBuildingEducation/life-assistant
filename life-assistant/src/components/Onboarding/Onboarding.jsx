@@ -52,11 +52,11 @@ export const Onboarding = () => {
         onboardingStep: nextStepNum,
       });
       setInputValue("");
-      navigate(`/onboarding/${nextStepNum}`);
+      navigate(`/archived/onboarding/${nextStepNum}`);
     } else {
       // Final step: save last answer and complete onboarding
       await updateUser(npub, { [key]: inputValue, step: "assistant" });
-      navigate("/assistant");
+      navigate("/archived/assistant");
     }
   };
 

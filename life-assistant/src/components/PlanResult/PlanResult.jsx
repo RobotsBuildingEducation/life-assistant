@@ -39,7 +39,7 @@ export const PlanResult = ({
       <VStack align="start" spacing={4} mb={6}>
         <Button
           colorScheme="blue"
-          onClick={() => navigate('/onboarding/1')}
+          onClick={() => navigate('/archived/onboarding/1')}
         >
           Edit Profile
         </Button>

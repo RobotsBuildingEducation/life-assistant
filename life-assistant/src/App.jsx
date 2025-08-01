@@ -110,9 +110,9 @@ function App() {
             setSelectedFont(user.fontFamily);
           }
           if (user.step === "onboarding") {
-            navigate("/onboarding/" + user.onboardingStep);
+            navigate("/archived/onboarding/" + user.onboardingStep);
           } else {
-            navigate("/assistant");
+            navigate("/archived/assistant");
           }
         } else {
           localStorage.clear();
@@ -196,8 +196,8 @@ function App() {
     }
   };
 
-  // Only show the header (icons) on onboarding or assistant routes
-  const showHeader = ["/onboarding", "/assistant"].some((path) =>
+  // Only show the header (icons) on archived onboarding or assistant routes
+  const showHeader = ["/archived/onboarding", "/archived/assistant"].some((path) =>
     location.pathname.startsWith(path)
   );
 
@@ -417,8 +417,8 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<Landing />} />
-        <Route path="/onboarding/:step" element={<Onboarding />} />
-        <Route path="/assistant" element={<Assistant />} />
+        <Route path="/archived/onboarding/:step" element={<Onboarding />} />
+        <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
     </>
   );
