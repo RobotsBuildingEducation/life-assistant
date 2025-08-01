@@ -23,6 +23,7 @@ export const NewAssistant = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [goalInput, setGoalInput] = useState("");
   const [editingGoal, setEditingGoal] = useState(false);
+  const [stage, setStage] = useState("goal"); // 'goal' or 'tasks'
 
   const [taskInput, setTaskInput] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -38,6 +39,7 @@ export const NewAssistant = () => {
       const user = await getUser(npub);
       setUserDoc(user);
       setGoalInput(user?.mainGoal || "");
+      setStage(user?.mainGoal ? "tasks" : "goal");
       setLoadingUser(false);
     })();
   }, []);
@@ -47,6 +49,7 @@ export const NewAssistant = () => {
     await updateUser(npub, { mainGoal: goalInput });
     setUserDoc((prev) => ({ ...(prev || {}), mainGoal: goalInput }));
     setEditingGoal(false);
+    setStage("tasks");
   };
 
   const addTask = () => {
@@ -109,7 +112,7 @@ export const NewAssistant = () => {
         <RoleCanvas role="sphere" width={400} height={400} color="#FF69B4" />
       </FadeInComponent>
       <VStack spacing={4} align="stretch" mt={4}>
-        {!userDoc?.mainGoal || editingGoal ? (
+        {editingGoal || stage === "goal" ? (
           <HStack>
             <Input
               placeholder="Your main goal"
@@ -129,41 +132,43 @@ export const NewAssistant = () => {
           </HStack>
         )}
 
-        {!listCreated ? (
-          <>
-            <HStack>
-              <Input
-                placeholder="What do you need to do?"
-                value={taskInput}
-                onChange={(e) => setTaskInput(e.target.value)}
-              />
-              <IconButton icon={<AddIcon />} onClick={addTask} />
-            </HStack>
-            {tasks.map((t, i) => (
-              <Text key={i}>• {t}</Text>
-            ))}
-            <Button onClick={createList} isLoading={creating} disabled={!tasks.length}>
-              Create List
-            </Button>
-          </>
-        ) : (
-          <>
-            <Heading size="sm">Today</Heading>
-            {tasks.map((t, i) => (
-              <HStack key={i}>
-                <Checkbox
-                  isChecked={!!completed[i]}
-                  onChange={() => toggleTask(i)}
+        {stage === "tasks" && (
+          !listCreated ? (
+            <>
+              <HStack>
+                <Input
+                  placeholder="What do you need to do?"
+                  value={taskInput}
+                  onChange={(e) => setTaskInput(e.target.value)}
                 />
-                <Text as={completed[i] ? "s" : undefined}>{t}</Text>
+                <IconButton icon={<AddIcon />} onClick={addTask} />
               </HStack>
-            ))}
-            {suggestion && (
-              <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
-                <Text fontSize="sm">{suggestion}</Text>
-              </Box>
-            )}
-          </>
+              {tasks.map((t, i) => (
+                <Text key={i}>• {t}</Text>
+              ))}
+              <Button onClick={createList} isLoading={creating} disabled={!tasks.length}>
+                Create List
+              </Button>
+            </>
+          ) : (
+            <>
+              <Heading size="sm">Today</Heading>
+              {tasks.map((t, i) => (
+                <HStack key={i}>
+                  <Checkbox
+                    isChecked={!!completed[i]}
+                    onChange={() => toggleTask(i)}
+                  />
+                  <Text as={completed[i] ? "s" : undefined}>{t}</Text>
+                </HStack>
+              ))}
+              {suggestion && (
+                <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
+                  <Text fontSize="sm">{suggestion}</Text>
+                </Box>
+              )}
+            </>
+          )
         )}
       </VStack>
     </Box>
