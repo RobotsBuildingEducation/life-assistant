@@ -38,6 +38,7 @@ import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
+import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 
 const ActionButton = ({ href, text, userLanguage }) => (
@@ -112,7 +113,7 @@ function App() {
           if (user.step === "onboarding") {
             navigate("/archived/onboarding/" + user.onboardingStep);
           } else {
-            navigate("/archived/assistant");
+            navigate("/assistant");
           }
         } else {
           localStorage.clear();
@@ -196,10 +197,12 @@ function App() {
     }
   };
 
-  // Only show the header (icons) on archived onboarding or assistant routes
-  const showHeader = ["/archived/onboarding", "/archived/assistant"].some((path) =>
-    location.pathname.startsWith(path)
-  );
+  // Only show the header (icons) on assistant or archived routes
+  const showHeader = [
+    "/assistant",
+    "/archived/onboarding",
+    "/archived/assistant",
+  ].some((path) => location.pathname.startsWith(path));
 
   return (
     <>
@@ -417,6 +420,7 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<Landing />} />
+        <Route path="/assistant" element={<NewAssistant />} />
         <Route path="/archived/onboarding/:step" element={<Onboarding />} />
         <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
