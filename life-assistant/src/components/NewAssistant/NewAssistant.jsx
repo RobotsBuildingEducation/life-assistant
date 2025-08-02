@@ -66,17 +66,9 @@ export const NewAssistant = () => {
       setGoalInput(user?.mainGoal || "");
       setStage(user?.mainGoal ? "tasks" : "goal");
       setLoadingUser(false);
-      if (!user?.mainGoal) {
-        onGoalOpen();
-      }
     })();
-  }, [onGoalOpen]);
+  }, []);
 
-  useEffect(() => {
-    if (stage === "goal") {
-      onGoalOpen();
-    }
-  }, [stage, onGoalOpen]);
 
   useEffect(() => {
     let index = 0;
@@ -158,10 +150,11 @@ export const NewAssistant = () => {
         What do we need to accomplish in the next 16 hours?
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
-        {userDoc.mainGoal && (
+        {userDoc.mainGoal ? (
           <HStack>
             <Heading size="md">{userDoc.mainGoal}</Heading>
             <IconButton
+              aria-label="Edit goal"
               icon={<EditIcon />}
               size="sm"
               onClick={() => {
@@ -170,6 +163,14 @@ export const NewAssistant = () => {
               }}
             />
           </HStack>
+        ) : (
+          <IconButton
+            aria-label="Set goal"
+            icon={<EditIcon />}
+            size="sm"
+            alignSelf="center"
+            onClick={onGoalOpen}
+          />
         )}
 
         {stage === "tasks" && (
