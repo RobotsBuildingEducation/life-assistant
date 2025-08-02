@@ -41,7 +41,7 @@ import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 
-const ActionButton = ({ href, text, userLanguage }) => (
+const ActionButton = ({ href, text }) => (
   <Button
     as="a"
     href={href}
@@ -60,7 +60,7 @@ const ActionButton = ({ href, text, userLanguage }) => (
 );
 
 function App() {
-  const { nostrPubKey } = useDecentralizedIdentity(
+  useDecentralizedIdentity(
     localStorage.getItem("local_npub"),
     localStorage.getItem("local_nsec")
   );

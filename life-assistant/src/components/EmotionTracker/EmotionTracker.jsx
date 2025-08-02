@@ -24,11 +24,7 @@ import {
 import { database } from "../../firebaseResources/config";
 import { getGenerativeModel } from "@firebase/vertexai";
 import { vertexAI } from "../../firebaseResources/config";
-import {
-  formatEmotionItem,
-  customInstructions,
-  emotionSummarizer,
-} from "./EmotionTracker.compute";
+import { customInstructions, emotionSummarizer } from "./EmotionTracker.compute";
 import { highEnergyFeelings, lowEnergyFeelings } from "./EmotionTracker.data";
 
 import { keyframes } from "@emotion/react";

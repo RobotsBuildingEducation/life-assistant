@@ -14,7 +14,6 @@ import { markdownTheme } from "../../theme";
 import GlassBox from "../GlassBox";
 
 export const PlanResult = ({
-  userDoc,
   bestSuggestion,
   planText,
   loadingPlan,

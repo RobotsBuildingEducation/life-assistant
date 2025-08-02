@@ -55,13 +55,8 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       "nsec",
       bech32.toWords(Buffer.from(privateKey, "hex"))
     );
-    const encodedNpub = bech32.encode(
-      "npub",
-      bech32.toWords(Buffer.from(publicKey, "hex"))
-    );
-
-    setNostrPrivKey(encodedNsec);
-    setNostrPubKey(publicKey);
+      setNostrPrivKey(encodedNsec);
+      setNostrPubKey(publicKey);
 
     if (!localStorage.getItem("local_nsec")) {
       //Creating profile... 2/4
@@ -188,7 +183,6 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
   const postNostrContent = async (
     content,
     kind = NDKKind.Text,
-    npubRef = null,
     nsecRef = null
   ) => {
     try {
@@ -305,7 +299,7 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       const connection = await connectToNostr();
       if (!connection) return [];
 
-      const { ndkInstance, hexNpub } = connection;
+      const { ndkInstance } = connection;
 
       // const addressPointer = await getAddressPointer(addy);
       let addressPointer = addy.split(":");

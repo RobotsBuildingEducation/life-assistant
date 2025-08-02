@@ -10,6 +10,14 @@ import {
   Checkbox,
   Heading,
   Spinner,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
 } from "@chakra-ui/react";
 import { AddIcon, EditIcon } from "@chakra-ui/icons";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
@@ -22,7 +30,6 @@ export const NewAssistant = () => {
   const [userDoc, setUserDoc] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [goalInput, setGoalInput] = useState("");
-  const [editingGoal, setEditingGoal] = useState(false);
   const [stage, setStage] = useState("goal"); // 'goal' or 'tasks'
 
   const [taskInput, setTaskInput] = useState("");
@@ -33,6 +40,24 @@ export const NewAssistant = () => {
   const [suggestion, setSuggestion] = useState("");
   const [memoryId, setMemoryId] = useState(null);
 
+  const roles = [
+    "chores",
+    "sphere",
+    "plan",
+    "meals",
+    "finance",
+    "sleep",
+    "emotions",
+    "counselor",
+    "vacation",
+  ];
+  const [role, setRole] = useState("sphere");
+  const {
+    isOpen: isGoalOpen,
+    onOpen: onGoalOpen,
+    onClose: onGoalClose,
+  } = useDisclosure();
+
   useEffect(() => {
     (async () => {
       const npub = localStorage.getItem("local_npub");
@@ -41,15 +66,33 @@ export const NewAssistant = () => {
       setGoalInput(user?.mainGoal || "");
       setStage(user?.mainGoal ? "tasks" : "goal");
       setLoadingUser(false);
+      if (!user?.mainGoal) {
+        onGoalOpen();
+      }
     })();
+  }, [onGoalOpen]);
+
+  useEffect(() => {
+    if (stage === "goal") {
+      onGoalOpen();
+    }
+  }, [stage, onGoalOpen]);
+
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % roles.length;
+      setRole(roles[index]);
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
     await updateUser(npub, { mainGoal: goalInput });
     setUserDoc((prev) => ({ ...(prev || {}), mainGoal: goalInput }));
-    setEditingGoal(false);
     setStage("tasks");
+    onGoalClose();
   };
 
   const addTask = () => {
@@ -109,25 +152,22 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s">
-        <RoleCanvas role="sphere" width={400} height={400} color="#FF69B4" />
+        <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
       </FadeInComponent>
+      <Heading size="md" textAlign="center" mt={4}>
+        What do we need to accomplish in the next 16 hours?
+      </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
-        {editingGoal || stage === "goal" ? (
-          <HStack>
-            <Input
-              placeholder="Your main goal"
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-            />
-            <Button onClick={saveGoal}>Save</Button>
-          </HStack>
-        ) : (
+        {userDoc.mainGoal && (
           <HStack>
             <Heading size="md">{userDoc.mainGoal}</Heading>
             <IconButton
               icon={<EditIcon />}
               size="sm"
-              onClick={() => setEditingGoal(true)}
+              onClick={() => {
+                setGoalInput(userDoc.mainGoal);
+                onGoalOpen();
+              }}
             />
           </HStack>
         )}
@@ -171,6 +211,24 @@ export const NewAssistant = () => {
           )
         )}
       </VStack>
+
+      <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Set Your Main Goal</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Input
+              placeholder="Your main goal"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={saveGoal}>Save</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

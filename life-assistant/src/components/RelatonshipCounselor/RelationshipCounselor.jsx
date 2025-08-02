@@ -18,7 +18,7 @@ import { vertexAI } from "../../firebaseResources/config";
 import { markdownTheme } from "../../theme";
 import GlassBox from "../GlassBox";
 
-export const RelationshipCounselor = ({ onClose, userDoc }) => {
+export const RelationshipCounselor = ({ userDoc }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
