@@ -151,18 +151,16 @@ export const NewAssistant = () => {
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
         {userDoc.mainGoal ? (
-          <HStack>
-            <Heading size="md">{userDoc.mainGoal}</Heading>
-            <IconButton
-              aria-label="Edit goal"
-              icon={<EditIcon />}
-              size="sm"
-              onClick={() => {
-                setGoalInput(userDoc.mainGoal);
-                onGoalOpen();
-              }}
-            />
-          </HStack>
+          <IconButton
+            aria-label="Edit goal"
+            icon={<EditIcon />}
+            size="sm"
+            alignSelf="center"
+            onClick={() => {
+              setGoalInput(userDoc.mainGoal);
+              onGoalOpen();
+            }}
+          />
         ) : (
           <IconButton
             aria-label="Set goal"
