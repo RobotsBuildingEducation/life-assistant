@@ -26,6 +26,10 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { database } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
@@ -74,6 +78,32 @@ export const NewAssistant = () => {
       setLoadingUser(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!userDoc) return;
+    (async () => {
+      const npub = localStorage.getItem("local_npub");
+      const memRef = collection(database, "users", npub, "memories");
+      const q = query(memRef, orderBy("timestamp", "desc"), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docSnap = snap.docs[0];
+        const data = docSnap.data();
+        setMemoryId(docSnap.id);
+        setTasks(data.tasks || []);
+        const completedMap = {};
+        (data.completed || []).forEach((t) => {
+          const idx = (data.tasks || []).indexOf(t);
+          if (idx >= 0) completedMap[idx] = true;
+        });
+        setCompleted(completedMap);
+        setSuggestion(data.suggestion || "");
+        if ((data.tasks || []).length) {
+          setListCreated(true);
+        }
+      }
+    })();
+  }, [userDoc]);
 
   useEffect(() => {
     let index = 0;
@@ -171,16 +201,18 @@ export const NewAssistant = () => {
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
         {userDoc.mainGoal ? (
-          <IconButton
-            aria-label="Edit goal"
-            icon={<EditIcon />}
-            size="sm"
-            alignSelf="center"
-            onClick={() => {
-              setGoalInput(userDoc.mainGoal);
-              onGoalOpen();
-            }}
-          />
+          <HStack justify="center">
+            <Text fontWeight="bold">{userDoc.mainGoal}</Text>
+            <IconButton
+              aria-label="Edit goal"
+              icon={<EditIcon />}
+              size="sm"
+              onClick={() => {
+                setGoalInput(userDoc.mainGoal);
+                onGoalOpen();
+              }}
+            />
+          </HStack>
         ) : (
           <IconButton
             aria-label="Set goal"
@@ -203,7 +235,7 @@ export const NewAssistant = () => {
                 <IconButton icon={<AddIcon />} onClick={addTask} />
               </HStack>
               {tasks.map((t, i) => (
-                <Text key={i}>• {t}</Text>
+                <Text key={i}>{i + 1}. {t}</Text>
               ))}
               <Button
                 onClick={createList}
@@ -222,7 +254,9 @@ export const NewAssistant = () => {
                     isChecked={!!completed[i]}
                     onChange={() => toggleTask(i)}
                   />
-                  <Text as={completed[i] ? "s" : undefined}>{t}</Text>
+                  <Text as={completed[i] ? "s" : undefined}>
+                    {i + 1}. {t}
+                  </Text>
                 </HStack>
               ))}
               {suggestion && (
