@@ -7,9 +7,10 @@ import {
   VStack,
   HStack,
   Text,
-  Checkbox,
+  Switch,
   Heading,
   Spinner,
+  Progress,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -29,7 +30,6 @@ import {
   getDocs,
   query,
   orderBy,
-  limit,
 } from "firebase/firestore";
 import { database } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
@@ -49,6 +49,9 @@ export const NewAssistant = () => {
   const [completed, setCompleted] = useState({});
   const [suggestion, setSuggestion] = useState("");
   const [memoryId, setMemoryId] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [progress, setProgress] = useState(100);
+  const [history, setHistory] = useState([]);
 
   const roles = [
     "chores",
@@ -84,24 +87,34 @@ export const NewAssistant = () => {
     (async () => {
       const npub = localStorage.getItem("local_npub");
       const memRef = collection(database, "users", npub, "memories");
-      const q = query(memRef, orderBy("timestamp", "desc"), limit(1));
+      const q = query(memRef, orderBy("timestamp", "desc"));
       const snap = await getDocs(q);
-      if (!snap.empty) {
-        const docSnap = snap.docs[0];
+      let current = null;
+      const past = [];
+      snap.forEach((docSnap) => {
         const data = docSnap.data();
-        setMemoryId(docSnap.id);
-        setTasks(data.tasks || []);
+        if (!current && !data.finished) {
+          current = { id: docSnap.id, ...data };
+        } else if (data.finished) {
+          past.push({ id: docSnap.id, ...data });
+        }
+      });
+      if (current) {
+        setMemoryId(current.id);
+        setTasks(current.tasks || []);
         const completedMap = {};
-        (data.completed || []).forEach((t) => {
-          const idx = (data.tasks || []).indexOf(t);
+        (current.completed || []).forEach((t) => {
+          const idx = (current.tasks || []).indexOf(t);
           if (idx >= 0) completedMap[idx] = true;
         });
         setCompleted(completedMap);
-        setSuggestion(data.suggestion || "");
-        if ((data.tasks || []).length) {
+        setSuggestion(current.suggestion || "");
+        setStartTime(current.timestamp?.toDate());
+        if ((current.tasks || []).length) {
           setListCreated(true);
         }
       }
+      setHistory(past);
     })();
   }, [userDoc]);
 
@@ -113,6 +126,17 @@ export const NewAssistant = () => {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!startTime) return;
+    const interval = setInterval(() => {
+      const total = 16 * 60 * 60 * 1000;
+      const elapsed = Date.now() - startTime.getTime();
+      const pct = Math.max(0, 100 - (elapsed / total) * 100);
+      setProgress(pct);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
@@ -156,6 +180,7 @@ export const NewAssistant = () => {
         incompleted: tasks,
         suggestion: insight,
         timestamp: serverTimestamp(),
+        finished: false,
       });
       setMemoryId(docRef.id);
       setSuggestion(insight);
@@ -164,23 +189,48 @@ export const NewAssistant = () => {
     }
     setCreating(false);
     setListCreated(true);
+    setCompleted({});
+    setStartTime(new Date());
+    setProgress(100);
   };
 
   const toggleTask = async (index) => {
     const npub = localStorage.getItem("local_npub");
     const newCompleted = { ...completed, [index]: !completed[index] };
     setCompleted(newCompleted);
+    const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
     if (memoryId) {
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
         await updateDoc(memDoc, {
           completed: tasks.filter((_, i) => newCompleted[i]),
           incompleted: tasks.filter((_, i) => !newCompleted[i]),
+          ...(allDone
+            ? { finished: true, finishedAt: serverTimestamp() }
+            : {}),
         });
       } catch (err) {
         console.error("update memory error", err);
       }
     }
+    if (allDone) {
+      setHistory((prev) => [
+        { id: memoryId, tasks, suggestion, timestamp: startTime },
+        ...prev,
+      ]);
+    }
+  };
+
+  const allTasksDone = tasks.length > 0 && tasks.every((_, i) => completed[i]);
+
+  const startNewList = () => {
+    setTasks([]);
+    setCompleted({});
+    setSuggestion("");
+    setListCreated(false);
+    setMemoryId(null);
+    setStartTime(null);
+    setProgress(100);
   };
 
   if (loadingUser) {
@@ -200,6 +250,9 @@ export const NewAssistant = () => {
         What do we need to accomplish in the next 16 hours?
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
+        {listCreated && (
+          <Progress value={progress} size="sm" colorScheme="pink" />
+        )}
         {userDoc.mainGoal ? (
           <HStack justify="center">
             <Text fontWeight="bold">{userDoc.mainGoal}</Text>
@@ -250,7 +303,7 @@ export const NewAssistant = () => {
               <Heading size="sm">Today</Heading>
               {tasks.map((t, i) => (
                 <HStack key={i}>
-                  <Checkbox
+                  <Switch
                     isChecked={!!completed[i]}
                     onChange={() => toggleTask(i)}
                   />
@@ -262,6 +315,23 @@ export const NewAssistant = () => {
               {suggestion && (
                 <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
                   <Text fontSize="sm">{suggestion}</Text>
+                </Box>
+              )}
+              {allTasksDone && (
+                <Button mt={4} onClick={startNewList}>
+                  New List
+                </Button>
+              )}
+              {history.length > 0 && (
+                <Box mt={4}>
+                  <Heading size="sm">History</Heading>
+                  {history.map((h) => (
+                    <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
+                      {h.tasks.map((task, idx) => (
+                        <Text key={idx}>{idx + 1}. {task}</Text>
+                      ))}
+                    </Box>
+                  ))}
                 </Box>
               )}
             </>
