@@ -86,10 +86,12 @@ export const Landing = () => {
           >
             <RoleCanvas role={role} width={200} height={200} color="#FF69B4" />
           </div>
-          <Heading as="h2" size="lg" textAlign="center">
+          <Heading as="h2" size="lg" textAlign="center" p={0} m={0}>
             16 Hours
           </Heading>
-          <Text textAlign="center">Lock In & Focus On Your Goals</Text>
+          <Text textAlign="center" p={0} m={"-6"} mb={4}>
+            Lock In & Focus On Your Goals
+          </Text>
           <FormControl>
             <FormLabel>Enter a username or secret key</FormLabel>
             <Input
@@ -114,6 +116,12 @@ export const Landing = () => {
           {nostrPubKey && (
             <Text fontSize="md">Welcome, {nostrPubKey.substring(0, 8)}</Text>
           )}
+
+          <Box mt={4}>
+            Most people struggle with procrastination, focus and completing
+            tasks. 16 hours is an app to provide frameworks and tools to make
+            those things easier.
+          </Box>
 
           {errorMessage && (
             <Text color="red.500" fontSize="sm">
