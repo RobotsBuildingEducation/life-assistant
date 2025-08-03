@@ -20,7 +20,13 @@ import {
   ModalFooter,
 } from "@chakra-ui/react";
 import { AddIcon, EditIcon } from "@chakra-ui/icons";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { database } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
 import { RoleCanvas } from "../RoleCanvas/RoleCanvas";
@@ -68,7 +74,6 @@ export const NewAssistant = () => {
       setLoadingUser(false);
     })();
   }, []);
-
 
   useEffect(() => {
     let index = 0;
@@ -144,7 +149,7 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s">
-        <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
+        <RoleCanvas role={"sphere"} width={200} height={200} color="#FF69B4" />
       </FadeInComponent>
       <Heading size="md" textAlign="center" mt={4}>
         What do we need to accomplish in the next 16 hours?
@@ -171,8 +176,8 @@ export const NewAssistant = () => {
           />
         )}
 
-        {stage === "tasks" && (
-          !listCreated ? (
+        {stage === "tasks" &&
+          (!listCreated ? (
             <>
               <HStack>
                 <Input
@@ -185,7 +190,11 @@ export const NewAssistant = () => {
               {tasks.map((t, i) => (
                 <Text key={i}>• {t}</Text>
               ))}
-              <Button onClick={createList} isLoading={creating} disabled={!tasks.length}>
+              <Button
+                onClick={createList}
+                isLoading={creating}
+                disabled={!tasks.length}
+              >
                 Create List
               </Button>
             </>
@@ -207,8 +216,7 @@ export const NewAssistant = () => {
                 </Box>
               )}
             </>
-          )
-        )}
+          ))}
       </VStack>
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
@@ -217,6 +225,7 @@ export const NewAssistant = () => {
           <ModalHeader>Set Your Main Goal</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
+            {goalInput}
             <Input
               placeholder="Your main goal"
               value={goalInput}
