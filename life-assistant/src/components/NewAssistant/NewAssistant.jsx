@@ -86,8 +86,23 @@ export const NewAssistant = () => {
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
-    await updateUser(npub, { mainGoal: goalInput });
-    setUserDoc((prev) => ({ ...(prev || {}), mainGoal: goalInput }));
+    const newGoal = goalInput.trim();
+    const history = userDoc?.goalHistory || [];
+    const updatedHistory =
+      userDoc?.mainGoal && userDoc.mainGoal !== newGoal
+        ? [userDoc.mainGoal, ...history]
+        : history;
+
+    await updateUser(npub, {
+      mainGoal: newGoal,
+      goalHistory: updatedHistory,
+    });
+
+    setUserDoc((prev) => ({
+      ...(prev || {}),
+      mainGoal: newGoal,
+      goalHistory: updatedHistory,
+    }));
     setStage("tasks");
     onGoalClose();
   };
@@ -149,7 +164,7 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s">
-        <RoleCanvas role={"sphere"} width={200} height={200} color="#FF69B4" />
+        <RoleCanvas role={role} width={200} height={200} color="#FF69B4" />
       </FadeInComponent>
       <Heading size="md" textAlign="center" mt={4}>
         What do we need to accomplish in the next 16 hours?
@@ -221,21 +236,36 @@ export const NewAssistant = () => {
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Set Your Main Goal</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {goalInput}
+      <ModalContent>
+        <ModalHeader>Set Your Main Goal</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+            {userDoc?.mainGoal && (
+              <Box mb={4}>
+                <Text fontWeight="bold">Current Goal</Text>
+                <Text>{userDoc.mainGoal}</Text>
+              </Box>
+            )}
+            {userDoc?.goalHistory?.length > 0 && (
+              <Box mb={4}>
+                <Text fontWeight="bold">Previous Goals</Text>
+                <VStack align="start" spacing={1} maxH="100px" overflowY="auto">
+                  {userDoc.goalHistory.map((g, idx) => (
+                    <Text key={idx} fontSize="sm">• {g}</Text>
+                  ))}
+                </VStack>
+              </Box>
+            )}
             <Input
               placeholder="Your main goal"
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
             />
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={saveGoal}>Save</Button>
-          </ModalFooter>
-        </ModalContent>
+        </ModalBody>
+        <ModalFooter>
+          <Button onClick={saveGoal}>Save</Button>
+        </ModalFooter>
+      </ModalContent>
       </Modal>
     </Box>
   );
