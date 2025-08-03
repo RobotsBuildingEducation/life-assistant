@@ -51,6 +51,7 @@ export const NewAssistant = () => {
   const [memoryId, setMemoryId] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [progress, setProgress] = useState(100);
+  const [timeString, setTimeString] = useState("");
   const [history, setHistory] = useState([]);
 
   const roles = [
@@ -129,12 +130,19 @@ export const NewAssistant = () => {
 
   useEffect(() => {
     if (!startTime) return;
-    const interval = setInterval(() => {
-      const total = 16 * 60 * 60 * 1000;
+    const total = 16 * 60 * 60 * 1000;
+    const tick = () => {
       const elapsed = Date.now() - startTime.getTime();
+      const remaining = Math.max(0, total - elapsed);
       const pct = Math.max(0, 100 - (elapsed / total) * 100);
       setProgress(pct);
-    }, 1000);
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+      setTimeString(`${hours} hours ${minutes} minutes ${seconds} seconds`);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [startTime]);
 
@@ -231,6 +239,7 @@ export const NewAssistant = () => {
     setMemoryId(null);
     setStartTime(null);
     setProgress(100);
+    setTimeString("");
   };
 
   if (loadingUser) {
@@ -251,7 +260,10 @@ export const NewAssistant = () => {
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
         {listCreated && (
-          <Progress value={progress} size="sm" colorScheme="pink" />
+          <>
+            <Progress value={progress} size="sm" colorScheme="pink" />
+            <Text textAlign="center">{timeString}</Text>
+          </>
         )}
         {userDoc.mainGoal ? (
           <HStack justify="center">
@@ -307,7 +319,7 @@ export const NewAssistant = () => {
                     isChecked={!!completed[i]}
                     onChange={() => toggleTask(i)}
                   />
-                  <Text as={completed[i] ? "s" : undefined}>
+                  <Text>
                     {i + 1}. {t}
                   </Text>
                 </HStack>
