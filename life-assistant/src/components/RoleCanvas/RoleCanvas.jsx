@@ -41,7 +41,6 @@ export function RoleCanvas({
 
   const baseRgb = useColorModeValue("255,255,255", "0,0,37");
   const fadeColor = `rgba(${baseRgb},${trailOpacity})`;
-  const bgColor = useColorModeValue("rgba(255,255,255,1)", "rgba(0,0,0,1)");
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -340,7 +339,6 @@ export function RoleCanvas({
           y = sleepY + (emoY - sleepY) * t;
           r = sleepR + (emoR - sleepR) * t;
         } else if (prog < 6 * step) {
-          const t = (prog - 5 * step) / step;
           x = emoX + (counX - emoX) * 0;
           y = emoY + (counY - emoY) * 0;
           r = emoR;
@@ -350,7 +348,6 @@ export function RoleCanvas({
           y = counY + (vacY - counY) * t;
           r = counR + (vacR - counR) * t;
         } else if (prog < 8 * step) {
-          const t = (prog - 7 * step) / step;
           x = vacX;
           y = vacY;
           r = vacR;
@@ -406,8 +403,8 @@ export function RoleCanvas({
     <canvas
       ref={canvasRef}
       style={{
-        width: `${200}px`,
-        height: `${200}px`,
+        width: `${width}px`,
+        height: `${height}px`,
         // backgroundColor: bgColor,
         borderRadius: role === "sphere" ? "50%" : "0",
         display: "block",

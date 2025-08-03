@@ -35,7 +35,7 @@ import VacationPlanner from "../VacationPlanner/VacationPlanner";
 import { ChevronDownIcon, EditIcon } from "@chakra-ui/icons";
 import ProfileEditor from "../ProfileEditor/ProfileEditor";
 import { PlanResult } from "../PlanResult/PlanResult";
-import { FadeInComponent, markdownTheme, RiseUpAnimation } from "../../theme";
+import { FadeInComponent, RiseUpAnimation } from "../../theme";
 import ChoreManager from "../ChoreManager/ChoreManager";
 import { RoleCanvas } from "../RoleCanvas/RoleCanvas";
 
@@ -100,7 +100,6 @@ export const Assistant = () => {
   const [showVacationUI, setShowVacationUI] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
-  const [autoLoading, setAutoLoading] = useState(true);
 
   const [roleReason, setRoleReason] = useState("");
 
@@ -164,13 +163,7 @@ export const Assistant = () => {
           setRoleHistory([]);
         }
         const remaining = ALL_ROLES.filter((r) => !history.includes(r));
-        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys \"choice\" and \"reason\". Valid choices: ${ALL_ROLES.join(
-          ", "
-        )}. Avoid choosing from: ${
-          history.join(", ") || "none"
-        }. Choose from: ${remaining.join(
-          ", "
-        )}. It must not be Markdown, just the object. \n\nUSER:\n${JSON.stringify(
+        const prompt = `Analyze the user's profile below and think step by step about which tool would be most useful today. Respond in JSON with keys "choice" and "reason". Valid choices: ${ALL_ROLES.join(", ")}. Avoid choosing from: ${history.join(", ") || "none"}. Choose from: ${remaining.join(", ")}. It must not be Markdown, just the object.\n\nUSER:\n${JSON.stringify(
           userDoc,
           null,
           2
@@ -200,7 +193,7 @@ export const Assistant = () => {
       } catch (err) {
         console.error("role suggestion error", err);
       } finally {
-        setAutoLoading(false);
+        // finished
       }
     })();
   }, [userDoc]);

@@ -38,9 +38,10 @@ import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
+import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 
-const ActionButton = ({ href, text, userLanguage }) => (
+const ActionButton = ({ href, text }) => (
   <Button
     as="a"
     href={href}
@@ -59,7 +60,7 @@ const ActionButton = ({ href, text, userLanguage }) => (
 );
 
 function App() {
-  const { nostrPubKey } = useDecentralizedIdentity(
+  useDecentralizedIdentity(
     localStorage.getItem("local_npub"),
     localStorage.getItem("local_nsec")
   );
@@ -110,7 +111,7 @@ function App() {
             setSelectedFont(user.fontFamily);
           }
           if (user.step === "onboarding") {
-            navigate("/onboarding/" + user.onboardingStep);
+            navigate("/onboarding");
           } else {
             navigate("/assistant");
           }
@@ -196,8 +197,8 @@ function App() {
     }
   };
 
-  // Only show the header (icons) on onboarding or assistant routes
-  const showHeader = ["/onboarding", "/assistant"].some((path) =>
+  // Only show the header (icons) on assistant or archived assistant routes
+  const showHeader = ["/assistant", "/archived/assistant"].some((path) =>
     location.pathname.startsWith(path)
   );
 
@@ -417,8 +418,9 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<Landing />} />
-        <Route path="/onboarding/:step" element={<Onboarding />} />
-        <Route path="/assistant" element={<Assistant />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/assistant" element={<NewAssistant />} />
+        <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
     </>
   );

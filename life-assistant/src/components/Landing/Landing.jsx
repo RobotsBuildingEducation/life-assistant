@@ -55,7 +55,7 @@ export const Landing = () => {
 
       if (user) {
         if (user.step === "onboarding") {
-          navigate("/onboarding/" + user.onboardingStep);
+          navigate("/onboarding");
         } else {
           navigate("/assistant");
         }
@@ -64,7 +64,7 @@ export const Landing = () => {
           nostrPubKey,
           authField.includes("nsec") ? "" : authField
         );
-        navigate("/onboarding/" + 1);
+        navigate("/onboarding");
       }
     };
 
@@ -84,11 +84,12 @@ export const Landing = () => {
               justifyContent: "center",
             }}
           >
-            <RoleCanvas role={role} width={400} height={400} color="#FF69B4" />
+            <RoleCanvas role={role} width={200} height={200} color="#FF69B4" />
           </div>
           <Heading as="h2" size="lg" textAlign="center">
-            Personal Assistant
+            16 Hours
           </Heading>
+          <Text textAlign="center">Lock In & Focus On Your Goals</Text>
           <FormControl>
             <FormLabel>Enter a username or secret key</FormLabel>
             <Input

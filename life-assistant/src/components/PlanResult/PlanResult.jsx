@@ -14,7 +14,6 @@ import { markdownTheme } from "../../theme";
 import GlassBox from "../GlassBox";
 
 export const PlanResult = ({
-  userDoc,
   bestSuggestion,
   planText,
   loadingPlan,
@@ -37,10 +36,7 @@ export const PlanResult = ({
         Settings
       </Heading>
       <VStack align="start" spacing={4} mb={6}>
-        <Button
-          colorScheme="blue"
-          onClick={() => navigate('/onboarding/1')}
-        >
+        <Button colorScheme="blue" onClick={() => navigate('/onboarding')}>
           Edit Profile
         </Button>
         <Button
