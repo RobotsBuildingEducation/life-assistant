@@ -212,24 +212,6 @@ export const NewAssistant = () => {
     setCompleted(newCompleted);
     const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
 
-    if (memoryId) {
-      const memDoc = doc(database, "users", npub, "memories", memoryId);
-      try {
-        await updateDoc(memDoc, {
-          completed: tasks.filter((_, i) => newCompleted[i]),
-          incompleted: tasks.filter((_, i) => !newCompleted[i]),
-          ...(allDone
-            ? {
-                finished: true,
-                finishedAt: serverTimestamp(),
-              }
-            : {}),
-        });
-      } catch (err) {
-        console.error("update memory error", err);
-      }
-    }
-
     if (allDone) {
       const finishedId = memoryId;
       const historyEntry = {
@@ -244,6 +226,26 @@ export const NewAssistant = () => {
       startNewList();
 
       (async () => {
+        try {
+          if (finishedId) {
+            const memDoc = doc(
+              database,
+              "users",
+              npub,
+              "memories",
+              finishedId
+            );
+            await updateDoc(memDoc, {
+              completed: tasks.filter((_, i) => newCompleted[i]),
+              incompleted: tasks.filter((_, i) => !newCompleted[i]),
+              finished: true,
+              finishedAt: serverTimestamp(),
+            });
+          }
+        } catch (err) {
+          console.error("update memory error", err);
+        }
+
         let analysisText = "";
         try {
           const prompt = `Goal: ${userDoc?.mainGoal || goalInput}\nTasks completed:\n${tasks
@@ -272,6 +274,16 @@ export const NewAssistant = () => {
           )
         );
       })();
+    } else if (memoryId) {
+      const memDoc = doc(database, "users", npub, "memories", memoryId);
+      try {
+        await updateDoc(memDoc, {
+          completed: tasks.filter((_, i) => newCompleted[i]),
+          incompleted: tasks.filter((_, i) => !newCompleted[i]),
+        });
+      } catch (err) {
+        console.error("update memory error", err);
+      }
     }
   };
 
@@ -287,7 +299,7 @@ export const NewAssistant = () => {
     localStorage.removeItem("draft_tasks");
   };
 
-  if (loadingUser || loadingCurrent) {
+  if (loadingUser) {
     return (
       <Box p={4} textAlign="center">
         <Spinner />
@@ -311,84 +323,80 @@ export const NewAssistant = () => {
         />
       </Heading>
       <VStack spacing={4} align="stretch" mt={4} key={listKey}>
-        {listCreated && (
-          <>
-            <Text textAlign="center">{timeString}</Text>
-            <Progress value={progress} size="sm" colorScheme="pink" />
-          </>
-        )}
-        {/* {userDoc.mainGoal ? (
-          <HStack justify="center">
-            <Text fontWeight="bold">{userDoc.mainGoal}</Text>
-          </HStack>
+        {loadingCurrent ? (
+          <Box p={4} textAlign="center">
+            <Spinner />
+          </Box>
         ) : (
-          <IconButton
-            aria-label="Set goal"
-            icon={<EditIcon />}
-            size="sm"
-            alignSelf="center"
-            onClick={onGoalOpen}
-          />
-        )} */}
+          <>
+            {listCreated && (
+              <>
+                <Text textAlign="center">{timeString}</Text>
+                <Progress value={progress} size="sm" colorScheme="pink" />
+              </>
+            )}
 
-        {stage === "tasks" &&
-          (!listCreated ? (
-            <>
-              <HStack>
-                <Input
-                  placeholder="Write a task"
-                  value={taskInput}
-                  onChange={(e) => setTaskInput(e.target.value)}
-                />
-              </HStack>
-              <Button leftIcon={<AddIcon />} onClick={addTask}>
-                Add task
-              </Button>
-
-              <Box mt={12} mb={12}>
-                {tasks.map((t, i) => (
-                  <HStack key={i} justify="space-between">
-                    <Text>
-                      {i + 1}. {t}
-                    </Text>
-                    <IconButton
-                      aria-label="Delete task"
-                      icon={<MinusIcon />}
-                      size="sm"
-                      onClick={() => removeTask(i)}
+            {stage === "tasks" &&
+              (!listCreated ? (
+                <>
+                  <HStack>
+                    <Input
+                      placeholder="Write a task"
+                      value={taskInput}
+                      onChange={(e) => setTaskInput(e.target.value)}
                     />
                   </HStack>
-                ))}
-              </Box>
-              <Button
-                onClick={createList}
-                isLoading={creating}
-                disabled={!tasks.length}
-              >
-                Start List
-              </Button>
-            </>
-          ) : (
-            <>
-              {/* <Heading size="sm">Today</Heading> */}
-              {tasks.map((t, i) => (
-                <HStack key={i}>
-                  <Switch
-                    isChecked={!!completed[i]}
-                    onChange={() => toggleTask(i)}
-                  />
-                  <Text>
-                    {i + 1}. {t}
-                  </Text>
-                </HStack>
+                  <Button leftIcon={<AddIcon />} onClick={addTask}>
+                    Add task
+                  </Button>
+
+                  <Box mt={12} mb={12}>
+                    {tasks.map((t, i) => (
+                      <HStack key={i} justify="space-between">
+                        <Text>
+                          {i + 1}. {t}
+                        </Text>
+                        <IconButton
+                          aria-label="Delete task"
+                          icon={<MinusIcon />}
+                          size="sm"
+                          onClick={() => removeTask(i)}
+                        />
+                      </HStack>
+                    ))}
+                  </Box>
+                  <Button
+                    onClick={createList}
+                    isLoading={creating}
+                    disabled={!tasks.length}
+                  >
+                    Start List
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {tasks.map((t, i) => (
+                    <HStack key={i}>
+                      <Switch
+                        isChecked={!!completed[i]}
+                        onChange={() => toggleTask(i)}
+                      />
+                      <Text>
+                        {i + 1}. {t}
+                      </Text>
+                    </HStack>
+                  ))}
+                </>
               ))}
-            </>
-          ))}
+          </>
+        )}
       </VStack>
 
       <Box mt={4}>
         <Heading size="sm">History</Heading>
-        {history.length === 0 ? (
+        {loadingCurrent ? (
+          <Spinner size="sm" mt={2} />
+        ) : history.length === 0 ? (
           <Text fontSize="sm" color="gray.500">
             No completed lists yet.
           </Text>
