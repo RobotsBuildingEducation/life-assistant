@@ -250,7 +250,7 @@ export const NewAssistant = () => {
             .map((t, i) => `${i + 1}. ${t}`)
             .join(
               "\n"
-            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence. `;
+            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
           const result = await analysisModel.generateContent(prompt);
           analysisText = result.response.text();
         } catch (err) {
