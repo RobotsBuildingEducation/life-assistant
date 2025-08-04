@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -30,6 +30,9 @@ import {
   getDocs,
   query,
   orderBy,
+  setDoc,
+  increment,
+  getDoc,
 } from "firebase/firestore";
 import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
@@ -59,6 +62,109 @@ export const NewAssistant = () => {
   const [history, setHistory] = useState([]);
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [listKey, setListKey] = useState(0);
+  const [globalAverage, setGlobalAverage] = useState(null);
+
+  const startNewList = useCallback(() => {
+    setTasks([]);
+    setCompleted({});
+    setListCreated(false);
+    setMemoryId(null);
+    setStartTime(null);
+    setProgress(100);
+    setTimeString("");
+    setListKey((k) => k + 1);
+    localStorage.removeItem("draft_tasks");
+  }, []);
+
+  const finishList = useCallback(
+    (completedMap, finishedId = memoryId) => {
+      if (!finishedId) return;
+      const npub = localStorage.getItem("local_npub");
+      const completedTasks = tasks.filter((_, i) => completedMap[i]);
+      const incompletedTasks = tasks.filter((_, i) => !completedMap[i]);
+      const pct = tasks.length
+        ? Math.round((completedTasks.length / tasks.length) * 100)
+        : 0;
+
+      const historyEntry = {
+        id: finishedId,
+        tasks,
+        completed: completedTasks,
+        incompleted: incompletedTasks,
+        percentage: pct,
+        analysis: "",
+        generating: true,
+        timestamp: startTime,
+      };
+      setHistory((prev) => [historyEntry, ...prev]);
+
+      startNewList();
+
+      (async () => {
+        try {
+          const memDoc = doc(database, "users", npub, "memories", finishedId);
+          await updateDoc(memDoc, {
+            completed: completedTasks,
+            incompleted: incompletedTasks,
+            finished: true,
+            finishedAt: serverTimestamp(),
+            percentage: pct,
+          });
+        } catch (err) {
+          console.error("update memory error", err);
+        }
+
+        try {
+          const statsDocRef = doc(database, "stats", "completion");
+          await setDoc(
+            statsDocRef,
+            { total: increment(pct), count: increment(1) },
+            { merge: true }
+          );
+          const statsSnap = await getDoc(statsDocRef);
+          if (statsSnap.exists()) {
+            const data = statsSnap.data();
+            if (data.count > 0) {
+              setGlobalAverage(data.total / data.count);
+            }
+          }
+        } catch (err) {
+          console.error("update stats error", err);
+        }
+
+        let analysisText = "";
+        try {
+          const prompt = `Goal: ${
+            userDoc?.mainGoal || goalInput
+          }\nTasks completed:\n${tasks
+            .map((t, i) => `${i + 1}. ${t}`)
+            .join(
+              "\n"
+            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
+          const result = await analysisModel.generateContent(prompt);
+          analysisText = result.response.text();
+        } catch (err) {
+          console.error("analysis error", err);
+        }
+
+        try {
+          const memDoc = doc(database, "users", npub, "memories", finishedId);
+          await updateDoc(memDoc, { analysis: analysisText });
+        } catch (err) {
+          console.error("update analysis error", err);
+        }
+
+        setHistory((prev) =>
+          prev.map((h) =>
+            h.id === finishedId
+              ? { ...h, analysis: analysisText, generating: false }
+              : h
+          )
+        );
+      })();
+    },
+    [goalInput, memoryId, startNewList, startTime, tasks, userDoc]
+  );
 
   const {
     isOpen: isGoalOpen,
@@ -123,6 +229,18 @@ export const NewAssistant = () => {
       }
       setHistory(past);
       setLoadingCurrent(false);
+      try {
+        const statsDocRef = doc(database, "stats", "completion");
+        const statsSnap = await getDoc(statsDocRef);
+        if (statsSnap.exists()) {
+          const data = statsSnap.data();
+          if (data.count > 0) {
+            setGlobalAverage(data.total / data.count);
+          }
+        }
+      } catch (err) {
+        console.error("get stats error", err);
+      }
     })();
   }, [userDoc]);
 
@@ -138,11 +256,14 @@ export const NewAssistant = () => {
       const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
       const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
       setTimeString(`${hours} hours ${minutes} minutes ${seconds} seconds`);
+      if (remaining <= 0 && listCreated) {
+        finishList(completed);
+      }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, completed, listCreated, finishList, memoryId]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
@@ -215,65 +336,7 @@ export const NewAssistant = () => {
     const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
 
     if (allDone) {
-      const finishedId = memoryId;
-      const historyEntry = {
-        id: finishedId,
-        tasks,
-        analysis: "",
-        generating: true,
-        timestamp: startTime,
-      };
-      setHistory((prev) => [historyEntry, ...prev]);
-
-      startNewList();
-
-      (async () => {
-        try {
-          if (finishedId) {
-            const memDoc = doc(database, "users", npub, "memories", finishedId);
-            await updateDoc(memDoc, {
-              completed: tasks.filter((_, i) => newCompleted[i]),
-              incompleted: tasks.filter((_, i) => !newCompleted[i]),
-              finished: true,
-              finishedAt: serverTimestamp(),
-            });
-          }
-        } catch (err) {
-          console.error("update memory error", err);
-        }
-
-        let analysisText = "";
-        try {
-          const prompt = `Goal: ${
-            userDoc?.mainGoal || goalInput
-          }\nTasks completed:\n${tasks
-            .map((t, i) => `${i + 1}. ${t}`)
-            .join(
-              "\n"
-            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
-          const result = await analysisModel.generateContent(prompt);
-          analysisText = result.response.text();
-        } catch (err) {
-          console.error("analysis error", err);
-        }
-
-        if (finishedId) {
-          const memDoc = doc(database, "users", npub, "memories", finishedId);
-          try {
-            await updateDoc(memDoc, { analysis: analysisText });
-          } catch (err) {
-            console.error("update analysis error", err);
-          }
-        }
-
-        setHistory((prev) =>
-          prev.map((h) =>
-            h.id === finishedId
-              ? { ...h, analysis: analysisText, generating: false }
-              : h
-          )
-        );
-      })();
+      finishList(newCompleted, memoryId);
     } else if (memoryId) {
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
@@ -285,18 +348,6 @@ export const NewAssistant = () => {
         console.error("update memory error", err);
       }
     }
-  };
-
-  const startNewList = () => {
-    setTasks([]);
-    setCompleted({});
-    setListCreated(false);
-    setMemoryId(null);
-    setStartTime(null);
-    setProgress(100);
-    setTimeString("");
-    setListKey((k) => k + 1);
-    localStorage.removeItem("draft_tasks");
   };
 
   if (loadingUser) {
@@ -399,6 +450,11 @@ export const NewAssistant = () => {
 
       <Box mt={16}>
         <Heading size="sm">History</Heading>
+        {globalAverage !== null && (
+          <Text fontSize="xs" color="gray.500">
+            Global Average Completion: {globalAverage.toFixed(1)}%
+          </Text>
+        )}
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
         ) : history.length === 0 ? (
@@ -406,24 +462,43 @@ export const NewAssistant = () => {
             No completed lists yet.
           </Text>
         ) : (
-          history.map((h) => (
-            <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
-              {h.tasks.map((task, idx) => (
-                <Text key={idx}>
-                  {idx + 1}. {task}
+          history.map((h) => {
+            const pct =
+              h.percentage ??
+              Math.round(
+                ((h.completed || []).length / (h.tasks?.length || 1)) * 100
+              );
+            const color =
+              pct > 80
+                ? "green"
+                : pct > 50
+                ? "blue"
+                : pct < 25
+                ? "red"
+                : "orange";
+            return (
+              <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
+                {h.tasks.map((task, idx) => (
+                  <Text key={idx}>
+                    {idx + 1}. {task}
+                  </Text>
+                ))}
+                <Text fontSize="sm" mt={2}>
+                  {pct}% complete
                 </Text>
-              ))}
-              {h.generating ? (
-                <Spinner size="sm" mt={2} />
-              ) : (
-                h.analysis && (
-                  <ReactMarkdown components={markdownTheme}>
-                    {h.analysis}
-                  </ReactMarkdown>
-                )
-              )}
-            </Box>
-          ))
+                <Progress value={pct} size="sm" colorScheme={color} />
+                {h.generating ? (
+                  <Spinner size="sm" mt={2} />
+                ) : (
+                  h.analysis && (
+                    <ReactMarkdown components={markdownTheme}>
+                      {h.analysis}
+                    </ReactMarkdown>
+                  )
+                )}
+              </Box>
+            );
+          })
         )}
       </Box>
 
