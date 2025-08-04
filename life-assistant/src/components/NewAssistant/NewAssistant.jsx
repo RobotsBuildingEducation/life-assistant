@@ -19,7 +19,6 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
-  useToast,
 } from "@chakra-ui/react";
 import { AddIcon, EditIcon, MinusIcon } from "@chakra-ui/icons";
 import {
@@ -57,8 +56,6 @@ export const NewAssistant = () => {
   const [history, setHistory] = useState([]);
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [listKey, setListKey] = useState(0);
-
-  const toast = useToast();
 
   const {
     isOpen: isGoalOpen,
@@ -187,6 +184,11 @@ export const NewAssistant = () => {
 
   const createList = async () => {
     setCreating(true);
+    setListCreated(true);
+    setCompleted({});
+    setStartTime(new Date());
+    setProgress(100);
+    localStorage.removeItem("draft_tasks");
     const npub = localStorage.getItem("local_npub");
     try {
       const memRef = collection(database, "users", npub, "memories");
@@ -202,11 +204,6 @@ export const NewAssistant = () => {
       console.error("create list error", err);
     }
     setCreating(false);
-    setListCreated(true);
-    setCompleted({});
-    setStartTime(new Date());
-    setProgress(100);
-    localStorage.removeItem("draft_tasks");
   };
 
   const toggleTask = async (index) => {
@@ -245,13 +242,6 @@ export const NewAssistant = () => {
       }
     }
     if (allDone) {
-      toast({
-        title: "List Review",
-        description: analysisText,
-        status: "info",
-        duration: 8000,
-        isClosable: true,
-      });
       setHistory((prev) => [
         { id: memoryId, tasks, analysis: analysisText, timestamp: startTime },
         ...prev,
@@ -379,10 +369,13 @@ export const NewAssistant = () => {
                       borderRadius="md"
                     >
                       {h.tasks.map((task, idx) => (
-                        <Text key={idx}>
-                          {idx + 1}. {task}
-                        </Text>
+                        <Text key={idx}>{idx + 1}. {task}</Text>
                       ))}
+                      {h.analysis && (
+                        <Text mt={2} fontStyle="italic">
+                          {h.analysis}
+                        </Text>
+                      )}
                     </Box>
                   ))}
                 </Box>
