@@ -213,9 +213,7 @@ export const NewAssistant = () => {
         await updateDoc(memDoc, {
           completed: tasks.filter((_, i) => newCompleted[i]),
           incompleted: tasks.filter((_, i) => !newCompleted[i]),
-          ...(allDone
-            ? { finished: true, finishedAt: serverTimestamp() }
-            : {}),
+          ...(allDone ? { finished: true, finishedAt: serverTimestamp() } : {}),
         });
       } catch (err) {
         console.error("update memory error", err);
@@ -253,30 +251,30 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s">
-        <RoleCanvas role={role} width={200} height={200} color="#FF69B4" />
+        {/* <RoleCanvas role={"sphere"} width={50} height={50} color="#FF69B4" /> */}
       </FadeInComponent>
       <Heading size="md" textAlign="center" mt={4}>
-        What do we need to accomplish in the next 16 hours?
+        What do we need to accomplish in the next 16 hours?{" "}
+        <IconButton
+          aria-label="Edit goal"
+          icon={<EditIcon />}
+          size="sm"
+          onClick={() => {
+            setGoalInput(userDoc.mainGoal);
+            onGoalOpen();
+          }}
+        />
       </Heading>
       <VStack spacing={4} align="stretch" mt={4}>
         {listCreated && (
           <>
-            <Progress value={progress} size="sm" colorScheme="pink" />
             <Text textAlign="center">{timeString}</Text>
+            <Progress value={progress} size="sm" colorScheme="pink" />
           </>
         )}
-        {userDoc.mainGoal ? (
+        {/* {userDoc.mainGoal ? (
           <HStack justify="center">
             <Text fontWeight="bold">{userDoc.mainGoal}</Text>
-            <IconButton
-              aria-label="Edit goal"
-              icon={<EditIcon />}
-              size="sm"
-              onClick={() => {
-                setGoalInput(userDoc.mainGoal);
-                onGoalOpen();
-              }}
-            />
           </HStack>
         ) : (
           <IconButton
@@ -286,7 +284,7 @@ export const NewAssistant = () => {
             alignSelf="center"
             onClick={onGoalOpen}
           />
-        )}
+        )} */}
 
         {stage === "tasks" &&
           (!listCreated ? (
@@ -300,7 +298,9 @@ export const NewAssistant = () => {
                 <IconButton icon={<AddIcon />} onClick={addTask} />
               </HStack>
               {tasks.map((t, i) => (
-                <Text key={i}>{i + 1}. {t}</Text>
+                <Text key={i}>
+                  {i + 1}. {t}
+                </Text>
               ))}
               <Button
                 onClick={createList}
@@ -312,7 +312,7 @@ export const NewAssistant = () => {
             </>
           ) : (
             <>
-              <Heading size="sm">Today</Heading>
+              {/* <Heading size="sm">Today</Heading> */}
               {tasks.map((t, i) => (
                 <HStack key={i}>
                   <Switch
@@ -338,9 +338,17 @@ export const NewAssistant = () => {
                 <Box mt={4}>
                   <Heading size="sm">History</Heading>
                   {history.map((h) => (
-                    <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
+                    <Box
+                      key={h.id}
+                      borderWidth="1px"
+                      p={2}
+                      mt={2}
+                      borderRadius="md"
+                    >
                       {h.tasks.map((task, idx) => (
-                        <Text key={idx}>{idx + 1}. {task}</Text>
+                        <Text key={idx}>
+                          {idx + 1}. {task}
+                        </Text>
                       ))}
                     </Box>
                   ))}
@@ -352,10 +360,10 @@ export const NewAssistant = () => {
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Set Your Main Goal</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
+        <ModalContent>
+          <ModalHeader>Set Your Main Goal</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
             {userDoc?.mainGoal && (
               <Box mb={4}>
                 <Text fontWeight="bold">Current Goal</Text>
@@ -367,7 +375,9 @@ export const NewAssistant = () => {
                 <Text fontWeight="bold">Previous Goals</Text>
                 <VStack align="start" spacing={1} maxH="100px" overflowY="auto">
                   {userDoc.goalHistory.map((g, idx) => (
-                    <Text key={idx} fontSize="sm">• {g}</Text>
+                    <Text key={idx} fontSize="sm">
+                      • {g}
+                    </Text>
                   ))}
                 </VStack>
               </Box>
@@ -377,11 +387,11 @@ export const NewAssistant = () => {
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
             />
-        </ModalBody>
-        <ModalFooter>
-          <Button onClick={saveGoal}>Save</Button>
-        </ModalFooter>
-      </ModalContent>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={saveGoal}>Save</Button>
+          </ModalFooter>
+        </ModalContent>
       </Modal>
     </Box>
   );
