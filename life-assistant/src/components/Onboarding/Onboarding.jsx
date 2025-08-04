@@ -10,7 +10,7 @@ export const Onboarding = () => {
 
   const handleSave = async () => {
     const npub = localStorage.getItem("local_npub");
-    await updateUser(npub, { goals: goal, step: "assistant" });
+    await updateUser(npub, { mainGoal: goal, step: "assistant" });
     navigate("/assistant");
   };
 
