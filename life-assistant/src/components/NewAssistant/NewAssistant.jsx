@@ -466,10 +466,16 @@ export const NewAssistant = () => {
             const pct =
               h.percentage ??
               Math.round(
-                (((h.completed || []).length) / (h.tasks?.length || 1)) * 100
+                ((h.completed || []).length / (h.tasks?.length || 1)) * 100
               );
             const color =
-              pct > 80 ? "green" : pct > 50 ? "blue" : pct < 25 ? "red" : "orange";
+              pct > 80
+                ? "green"
+                : pct > 50
+                ? "blue"
+                : pct < 25
+                ? "red"
+                : "orange";
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
                 {h.tasks.map((task, idx) => (
@@ -477,7 +483,9 @@ export const NewAssistant = () => {
                     {idx + 1}. {task}
                   </Text>
                 ))}
-                <Text fontSize="sm" mt={2}>{pct}% complete</Text>
+                <Text fontSize="sm" mt={2}>
+                  {pct}% complete
+                </Text>
                 <Progress value={pct} size="sm" colorScheme={color} />
                 {h.generating ? (
                   <Spinner size="sm" mt={2} />
