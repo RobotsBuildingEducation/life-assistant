@@ -322,6 +322,11 @@ export const NewAssistant = () => {
           }}
         />
       </Heading>
+      <Text fontSize={"sm"} mt={4} mb={12}>
+        What you need to accomplish in the next 16 hours is your <b>signal</b>,
+        everything else is <b>noise.</b> Aim to complete at least 80% of
+        necessary tasks to make progress.
+      </Text>
       <VStack spacing={4} align="stretch" mt={4} key={listKey}>
         {loadingCurrent ? (
           <Box p={4} textAlign="center">
@@ -332,7 +337,7 @@ export const NewAssistant = () => {
             {listCreated && (
               <>
                 <Text textAlign="center">{timeString}</Text>
-                <Progress value={progress} size="sm" colorScheme="pink" />
+                <Progress value={progress} size="sm" colorScheme="green" />
               </>
             )}
 
@@ -392,7 +397,7 @@ export const NewAssistant = () => {
         )}
       </VStack>
 
-      <Box mt={4}>
+      <Box mt={16}>
         <Heading size="sm">History</Heading>
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
