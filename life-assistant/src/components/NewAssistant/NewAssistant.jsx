@@ -20,7 +20,7 @@ import {
   ModalBody,
   ModalFooter,
 } from "@chakra-ui/react";
-import { AddIcon, EditIcon } from "@chakra-ui/icons";
+import { AddIcon, EditIcon, MinusIcon } from "@chakra-ui/icons";
 import {
   collection,
   addDoc,
@@ -31,10 +31,15 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { database } from "../../firebaseResources/config";
+import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
-import { RoleCanvas } from "../RoleCanvas/RoleCanvas";
-import { FadeInComponent } from "../../theme";
+import { FadeInComponent, markdownTheme } from "../../theme";
+import { getGenerativeModel } from "@firebase/vertexai";
+import ReactMarkdown from "react-markdown";
+
+const analysisModel = getGenerativeModel(vertexAI, {
+  model: "gemini-2.0-flash",
+});
 
 export const NewAssistant = () => {
   const [userDoc, setUserDoc] = useState(null);
@@ -47,30 +52,30 @@ export const NewAssistant = () => {
   const [creating, setCreating] = useState(false);
   const [listCreated, setListCreated] = useState(false);
   const [completed, setCompleted] = useState({});
-  const [suggestion, setSuggestion] = useState("");
   const [memoryId, setMemoryId] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [progress, setProgress] = useState(100);
   const [timeString, setTimeString] = useState("");
   const [history, setHistory] = useState([]);
+  const [loadingCurrent, setLoadingCurrent] = useState(true);
+  const [listKey, setListKey] = useState(0);
 
-  const roles = [
-    "chores",
-    "sphere",
-    "plan",
-    "meals",
-    "finance",
-    "sleep",
-    "emotions",
-    "counselor",
-    "vacation",
-  ];
-  const [role, setRole] = useState("sphere");
   const {
     isOpen: isGoalOpen,
     onOpen: onGoalOpen,
     onClose: onGoalClose,
   } = useDisclosure();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("draft_tasks");
+    if (saved) {
+      try {
+        setTasks(JSON.parse(saved));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -85,6 +90,7 @@ export const NewAssistant = () => {
 
   useEffect(() => {
     if (!userDoc) return;
+    setLoadingCurrent(true);
     (async () => {
       const npub = localStorage.getItem("local_npub");
       const memRef = collection(database, "users", npub, "memories");
@@ -109,24 +115,16 @@ export const NewAssistant = () => {
           if (idx >= 0) completedMap[idx] = true;
         });
         setCompleted(completedMap);
-        setSuggestion(current.suggestion || "");
         setStartTime(current.timestamp?.toDate());
         if ((current.tasks || []).length) {
           setListCreated(true);
+          localStorage.removeItem("draft_tasks");
         }
       }
       setHistory(past);
+      setLoadingCurrent(false);
     })();
   }, [userDoc]);
-
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      index = (index + 1) % roles.length;
-      setRole(roles[index]);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (!startTime) return;
@@ -176,30 +174,38 @@ export const NewAssistant = () => {
     }
   };
 
+  const removeTask = (index) => {
+    setTasks((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  useEffect(() => {
+    if (!listCreated) {
+      localStorage.setItem("draft_tasks", JSON.stringify(tasks));
+    }
+  }, [tasks, listCreated]);
+
   const createList = async () => {
     setCreating(true);
+    setListCreated(true);
+    setCompleted({});
+    setStartTime(new Date());
+    setProgress(100);
+    localStorage.removeItem("draft_tasks");
     const npub = localStorage.getItem("local_npub");
-    const insight = `Tasks relate to goal: ${goalInput}`;
     try {
       const memRef = collection(database, "users", npub, "memories");
       const docRef = await addDoc(memRef, {
         tasks,
         completed: [],
         incompleted: tasks,
-        suggestion: insight,
         timestamp: serverTimestamp(),
         finished: false,
       });
       setMemoryId(docRef.id);
-      setSuggestion(insight);
     } catch (err) {
       console.error("create list error", err);
     }
     setCreating(false);
-    setListCreated(true);
-    setCompleted({});
-    setStartTime(new Date());
-    setProgress(100);
   };
 
   const toggleTask = async (index) => {
@@ -207,37 +213,90 @@ export const NewAssistant = () => {
     const newCompleted = { ...completed, [index]: !completed[index] };
     setCompleted(newCompleted);
     const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
-    if (memoryId) {
+
+    if (allDone) {
+      const finishedId = memoryId;
+      const historyEntry = {
+        id: finishedId,
+        tasks,
+        analysis: "",
+        generating: true,
+        timestamp: startTime,
+      };
+      setHistory((prev) => [historyEntry, ...prev]);
+
+      startNewList();
+
+      (async () => {
+        try {
+          if (finishedId) {
+            const memDoc = doc(database, "users", npub, "memories", finishedId);
+            await updateDoc(memDoc, {
+              completed: tasks.filter((_, i) => newCompleted[i]),
+              incompleted: tasks.filter((_, i) => !newCompleted[i]),
+              finished: true,
+              finishedAt: serverTimestamp(),
+            });
+          }
+        } catch (err) {
+          console.error("update memory error", err);
+        }
+
+        let analysisText = "";
+        try {
+          const prompt = `Goal: ${
+            userDoc?.mainGoal || goalInput
+          }\nTasks completed:\n${tasks
+            .map((t, i) => `${i + 1}. ${t}`)
+            .join(
+              "\n"
+            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence. `;
+          const result = await analysisModel.generateContent(prompt);
+          analysisText = result.response.text();
+        } catch (err) {
+          console.error("analysis error", err);
+        }
+
+        if (finishedId) {
+          const memDoc = doc(database, "users", npub, "memories", finishedId);
+          try {
+            await updateDoc(memDoc, { analysis: analysisText });
+          } catch (err) {
+            console.error("update analysis error", err);
+          }
+        }
+
+        setHistory((prev) =>
+          prev.map((h) =>
+            h.id === finishedId
+              ? { ...h, analysis: analysisText, generating: false }
+              : h
+          )
+        );
+      })();
+    } else if (memoryId) {
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
         await updateDoc(memDoc, {
           completed: tasks.filter((_, i) => newCompleted[i]),
           incompleted: tasks.filter((_, i) => !newCompleted[i]),
-          ...(allDone ? { finished: true, finishedAt: serverTimestamp() } : {}),
         });
       } catch (err) {
         console.error("update memory error", err);
       }
     }
-    if (allDone) {
-      setHistory((prev) => [
-        { id: memoryId, tasks, suggestion, timestamp: startTime },
-        ...prev,
-      ]);
-    }
   };
-
-  const allTasksDone = tasks.length > 0 && tasks.every((_, i) => completed[i]);
 
   const startNewList = () => {
     setTasks([]);
     setCompleted({});
-    setSuggestion("");
     setListCreated(false);
     setMemoryId(null);
     setStartTime(null);
     setProgress(100);
     setTimeString("");
+    setListKey((k) => k + 1);
+    localStorage.removeItem("draft_tasks");
   };
 
   if (loadingUser) {
@@ -250,9 +309,7 @@ export const NewAssistant = () => {
 
   return (
     <Box p={4} maxW="600px" mx="auto">
-      <FadeInComponent speed="0.5s">
-        {/* <RoleCanvas role={"sphere"} width={50} height={50} color="#FF69B4" /> */}
-      </FadeInComponent>
+      <FadeInComponent speed="0.5s" />
       <Heading size="md" textAlign="center" mt={4}>
         What do we need to accomplish in the next 16 hours?{" "}
         <IconButton
@@ -265,103 +322,105 @@ export const NewAssistant = () => {
           }}
         />
       </Heading>
-      <VStack spacing={4} align="stretch" mt={4}>
-        {listCreated && (
+      <VStack spacing={4} align="stretch" mt={4} key={listKey}>
+        {loadingCurrent ? (
+          <Box p={4} textAlign="center">
+            <Spinner />
+          </Box>
+        ) : (
           <>
-            <Text textAlign="center">{timeString}</Text>
-            <Progress value={progress} size="sm" colorScheme="pink" />
+            {listCreated && (
+              <>
+                <Text textAlign="center">{timeString}</Text>
+                <Progress value={progress} size="sm" colorScheme="pink" />
+              </>
+            )}
+
+            {stage === "tasks" &&
+              (!listCreated ? (
+                <>
+                  <HStack>
+                    <Input
+                      placeholder="Write a task"
+                      value={taskInput}
+                      onChange={(e) => setTaskInput(e.target.value)}
+                    />
+                  </HStack>
+                  <Button leftIcon={<AddIcon />} onClick={addTask}>
+                    Add task
+                  </Button>
+
+                  <Box mt={12} mb={12}>
+                    {tasks.map((t, i) => (
+                      <HStack key={i} justify="space-between">
+                        <Text>
+                          {i + 1}. {t}
+                        </Text>
+                        <IconButton
+                          aria-label="Delete task"
+                          icon={<MinusIcon />}
+                          size="sm"
+                          onClick={() => removeTask(i)}
+                        />
+                      </HStack>
+                    ))}
+                  </Box>
+                  <Button
+                    onClick={createList}
+                    isLoading={creating}
+                    disabled={!tasks.length}
+                  >
+                    Start List
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {tasks.map((t, i) => (
+                    <HStack key={i}>
+                      <Switch
+                        isChecked={!!completed[i]}
+                        onChange={() => toggleTask(i)}
+                      />
+                      <Text>
+                        {i + 1}. {t}
+                      </Text>
+                    </HStack>
+                  ))}
+                </>
+              ))}
           </>
         )}
-        {/* {userDoc.mainGoal ? (
-          <HStack justify="center">
-            <Text fontWeight="bold">{userDoc.mainGoal}</Text>
-          </HStack>
-        ) : (
-          <IconButton
-            aria-label="Set goal"
-            icon={<EditIcon />}
-            size="sm"
-            alignSelf="center"
-            onClick={onGoalOpen}
-          />
-        )} */}
-
-        {stage === "tasks" &&
-          (!listCreated ? (
-            <>
-              <HStack>
-                <Input
-                  placeholder="Write a task"
-                  value={taskInput}
-                  onChange={(e) => setTaskInput(e.target.value)}
-                />
-              </HStack>
-              <Button leftIcon={<AddIcon />} onClick={addTask}>
-                Add task
-              </Button>
-
-              <Box mt={12} mb={12}>
-                {tasks.map((t, i) => (
-                  <Text key={i}>
-                    {i + 1}. {t}
-                  </Text>
-                ))}
-              </Box>
-              <Button
-                onClick={createList}
-                isLoading={creating}
-                disabled={!tasks.length}
-              >
-                Start List
-              </Button>
-            </>
-          ) : (
-            <>
-              {/* <Heading size="sm">Today</Heading> */}
-              {tasks.map((t, i) => (
-                <HStack key={i}>
-                  <Switch
-                    isChecked={!!completed[i]}
-                    onChange={() => toggleTask(i)}
-                  />
-                  <Text>
-                    {i + 1}. {t}
-                  </Text>
-                </HStack>
-              ))}
-              {/* {suggestion && (
-                <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
-                  <Text fontSize="sm">{suggestion}</Text>
-                </Box>
-              )} */}
-              {allTasksDone && (
-                <Button mt={4} onClick={startNewList}>
-                  New List
-                </Button>
-              )}
-              {history.length > 0 && (
-                <Box mt={4}>
-                  <Heading size="sm">History</Heading>
-                  {history.map((h) => (
-                    <Box
-                      key={h.id}
-                      borderWidth="1px"
-                      p={2}
-                      mt={2}
-                      borderRadius="md"
-                    >
-                      {h.tasks.map((task, idx) => (
-                        <Text key={idx}>
-                          {idx + 1}. {task}
-                        </Text>
-                      ))}
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </>
-          ))}
       </VStack>
+
+      <Box mt={4}>
+        <Heading size="sm">History</Heading>
+        {loadingCurrent ? (
+          <Spinner size="sm" mt={2} />
+        ) : history.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No completed lists yet.
+          </Text>
+        ) : (
+          history.map((h) => (
+            <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
+              {h.tasks.map((task, idx) => (
+                <Text key={idx}>
+                  {idx + 1}. {task}
+                </Text>
+              ))}
+              {h.generating ? (
+                <Spinner size="sm" mt={2} />
+              ) : (
+                h.analysis && (
+                  <ReactMarkdown components={markdownTheme}>
+                    {h.analysis}
+                  </ReactMarkdown>
+                )
+              )}
+            </Box>
+          ))
+        )}
+      </Box>
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
