@@ -211,18 +211,7 @@ export const NewAssistant = () => {
     const newCompleted = { ...completed, [index]: !completed[index] };
     setCompleted(newCompleted);
     const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
-    let analysisText = "";
-    if (allDone) {
-      try {
-        const prompt = `Goal: ${userDoc?.mainGoal || goalInput}\nTasks completed:\n${tasks
-          .map((t, i) => `${i + 1}. ${t}`)
-          .join("\n")}\n\nBriefly review what was done well relative to the goal and suggest what could be improved.`;
-        const result = await analysisModel.generateContent(prompt);
-        analysisText = result.response.text();
-      } catch (err) {
-        console.error("analysis error", err);
-      }
-    }
+
     if (memoryId) {
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
@@ -233,7 +222,6 @@ export const NewAssistant = () => {
             ? {
                 finished: true,
                 finishedAt: serverTimestamp(),
-                analysis: analysisText,
               }
             : {}),
         });
@@ -241,12 +229,49 @@ export const NewAssistant = () => {
         console.error("update memory error", err);
       }
     }
+
     if (allDone) {
-      setHistory((prev) => [
-        { id: memoryId, tasks, analysis: analysisText, timestamp: startTime },
-        ...prev,
-      ]);
+      const finishedId = memoryId;
+      const historyEntry = {
+        id: finishedId,
+        tasks,
+        analysis: "",
+        generating: true,
+        timestamp: startTime,
+      };
+      setHistory((prev) => [historyEntry, ...prev]);
+
       startNewList();
+
+      (async () => {
+        let analysisText = "";
+        try {
+          const prompt = `Goal: ${userDoc?.mainGoal || goalInput}\nTasks completed:\n${tasks
+            .map((t, i) => `${i + 1}. ${t}`)
+            .join("\n")}\n\nBriefly review what was done well relative to the goal and suggest what could be improved.`;
+          const result = await analysisModel.generateContent(prompt);
+          analysisText = result.response.text();
+        } catch (err) {
+          console.error("analysis error", err);
+        }
+
+        if (finishedId) {
+          const memDoc = doc(database, "users", npub, "memories", finishedId);
+          try {
+            await updateDoc(memDoc, { analysis: analysisText });
+          } catch (err) {
+            console.error("update analysis error", err);
+          }
+        }
+
+        setHistory((prev) =>
+          prev.map((h) =>
+            h.id === finishedId
+              ? { ...h, analysis: analysisText, generating: false }
+              : h
+          )
+        );
+      })();
     }
   };
 
@@ -357,32 +382,41 @@ export const NewAssistant = () => {
                   </Text>
                 </HStack>
               ))}
-              {history.length > 0 && (
-                <Box mt={4}>
-                  <Heading size="sm">History</Heading>
-                  {history.map((h) => (
-                    <Box
-                      key={h.id}
-                      borderWidth="1px"
-                      p={2}
-                      mt={2}
-                      borderRadius="md"
-                    >
-                      {h.tasks.map((task, idx) => (
-                        <Text key={idx}>{idx + 1}. {task}</Text>
-                      ))}
-                      {h.analysis && (
-                        <Text mt={2} fontStyle="italic">
-                          {h.analysis}
-                        </Text>
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-              )}
             </>
           ))}
       </VStack>
+
+      <Box mt={4}>
+        <Heading size="sm">History</Heading>
+        {history.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No completed lists yet.
+          </Text>
+        ) : (
+          history.map((h) => (
+            <Box
+              key={h.id}
+              borderWidth="1px"
+              p={2}
+              mt={2}
+              borderRadius="md"
+            >
+              {h.tasks.map((task, idx) => (
+                <Text key={idx}>{idx + 1}. {task}</Text>
+              ))}
+              {h.generating ? (
+                <Spinner size="sm" mt={2} />
+              ) : (
+                h.analysis && (
+                  <Text mt={2} fontStyle="italic">
+                    {h.analysis}
+                  </Text>
+                )
+              )}
+            </Box>
+          ))
+        )}
+      </Box>
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
