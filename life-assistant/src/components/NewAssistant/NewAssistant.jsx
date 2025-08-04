@@ -291,23 +291,28 @@ export const NewAssistant = () => {
             <>
               <HStack>
                 <Input
-                  placeholder="What do you need to do?"
+                  placeholder="Write a task"
                   value={taskInput}
                   onChange={(e) => setTaskInput(e.target.value)}
                 />
-                <IconButton icon={<AddIcon />} onClick={addTask} />
               </HStack>
-              {tasks.map((t, i) => (
-                <Text key={i}>
-                  {i + 1}. {t}
-                </Text>
-              ))}
+              <Button leftIcon={<AddIcon />} onClick={addTask}>
+                Add task
+              </Button>
+
+              <Box mt={12} mb={12}>
+                {tasks.map((t, i) => (
+                  <Text key={i}>
+                    {i + 1}. {t}
+                  </Text>
+                ))}
+              </Box>
               <Button
                 onClick={createList}
                 isLoading={creating}
                 disabled={!tasks.length}
               >
-                Create List
+                Start List
               </Button>
             </>
           ) : (
@@ -324,11 +329,11 @@ export const NewAssistant = () => {
                   </Text>
                 </HStack>
               ))}
-              {suggestion && (
+              {/* {suggestion && (
                 <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
                   <Text fontSize="sm">{suggestion}</Text>
                 </Box>
-              )}
+              )} */}
               {allTasksDone && (
                 <Button mt={4} onClick={startNewList}>
                   New List
