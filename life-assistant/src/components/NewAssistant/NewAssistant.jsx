@@ -19,8 +19,9 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
+  useToast,
 } from "@chakra-ui/react";
-import { AddIcon, EditIcon } from "@chakra-ui/icons";
+import { AddIcon, EditIcon, MinusIcon } from "@chakra-ui/icons";
 import {
   collection,
   addDoc,
@@ -31,10 +32,12 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { database } from "../../firebaseResources/config";
+import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
-import { RoleCanvas } from "../RoleCanvas/RoleCanvas";
 import { FadeInComponent } from "../../theme";
+import { getGenerativeModel } from "@firebase/vertexai";
+
+const analysisModel = getGenerativeModel(vertexAI, { model: "gemini-2.0-flash" });
 
 export const NewAssistant = () => {
   const [userDoc, setUserDoc] = useState(null);
@@ -47,30 +50,32 @@ export const NewAssistant = () => {
   const [creating, setCreating] = useState(false);
   const [listCreated, setListCreated] = useState(false);
   const [completed, setCompleted] = useState({});
-  const [suggestion, setSuggestion] = useState("");
   const [memoryId, setMemoryId] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [progress, setProgress] = useState(100);
   const [timeString, setTimeString] = useState("");
   const [history, setHistory] = useState([]);
+  const [loadingCurrent, setLoadingCurrent] = useState(true);
+  const [listKey, setListKey] = useState(0);
 
-  const roles = [
-    "chores",
-    "sphere",
-    "plan",
-    "meals",
-    "finance",
-    "sleep",
-    "emotions",
-    "counselor",
-    "vacation",
-  ];
-  const [role, setRole] = useState("sphere");
+  const toast = useToast();
+
   const {
     isOpen: isGoalOpen,
     onOpen: onGoalOpen,
     onClose: onGoalClose,
   } = useDisclosure();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("draft_tasks");
+    if (saved) {
+      try {
+        setTasks(JSON.parse(saved));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -85,6 +90,7 @@ export const NewAssistant = () => {
 
   useEffect(() => {
     if (!userDoc) return;
+    setLoadingCurrent(true);
     (async () => {
       const npub = localStorage.getItem("local_npub");
       const memRef = collection(database, "users", npub, "memories");
@@ -109,24 +115,17 @@ export const NewAssistant = () => {
           if (idx >= 0) completedMap[idx] = true;
         });
         setCompleted(completedMap);
-        setSuggestion(current.suggestion || "");
         setStartTime(current.timestamp?.toDate());
         if ((current.tasks || []).length) {
           setListCreated(true);
+          localStorage.removeItem("draft_tasks");
         }
       }
       setHistory(past);
+      setLoadingCurrent(false);
     })();
   }, [userDoc]);
 
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      index = (index + 1) % roles.length;
-      setRole(roles[index]);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (!startTime) return;
@@ -176,22 +175,29 @@ export const NewAssistant = () => {
     }
   };
 
+  const removeTask = (index) => {
+    setTasks((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  useEffect(() => {
+    if (!listCreated) {
+      localStorage.setItem("draft_tasks", JSON.stringify(tasks));
+    }
+  }, [tasks, listCreated]);
+
   const createList = async () => {
     setCreating(true);
     const npub = localStorage.getItem("local_npub");
-    const insight = `Tasks relate to goal: ${goalInput}`;
     try {
       const memRef = collection(database, "users", npub, "memories");
       const docRef = await addDoc(memRef, {
         tasks,
         completed: [],
         incompleted: tasks,
-        suggestion: insight,
         timestamp: serverTimestamp(),
         finished: false,
       });
       setMemoryId(docRef.id);
-      setSuggestion(insight);
     } catch (err) {
       console.error("create list error", err);
     }
@@ -200,6 +206,7 @@ export const NewAssistant = () => {
     setCompleted({});
     setStartTime(new Date());
     setProgress(100);
+    localStorage.removeItem("draft_tasks");
   };
 
   const toggleTask = async (index) => {
@@ -207,40 +214,65 @@ export const NewAssistant = () => {
     const newCompleted = { ...completed, [index]: !completed[index] };
     setCompleted(newCompleted);
     const allDone = tasks.length && tasks.every((_, i) => newCompleted[i]);
+    let analysisText = "";
+    if (allDone) {
+      try {
+        const prompt = `Goal: ${userDoc?.mainGoal || goalInput}\nTasks completed:\n${tasks
+          .map((t, i) => `${i + 1}. ${t}`)
+          .join("\n")}\n\nBriefly review what was done well relative to the goal and suggest what could be improved.`;
+        const result = await analysisModel.generateContent(prompt);
+        analysisText = result.response.text();
+      } catch (err) {
+        console.error("analysis error", err);
+      }
+    }
     if (memoryId) {
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
         await updateDoc(memDoc, {
           completed: tasks.filter((_, i) => newCompleted[i]),
           incompleted: tasks.filter((_, i) => !newCompleted[i]),
-          ...(allDone ? { finished: true, finishedAt: serverTimestamp() } : {}),
+          ...(allDone
+            ? {
+                finished: true,
+                finishedAt: serverTimestamp(),
+                analysis: analysisText,
+              }
+            : {}),
         });
       } catch (err) {
         console.error("update memory error", err);
       }
     }
     if (allDone) {
+      toast({
+        title: "List Review",
+        description: analysisText,
+        status: "info",
+        duration: 8000,
+        isClosable: true,
+      });
       setHistory((prev) => [
-        { id: memoryId, tasks, suggestion, timestamp: startTime },
+        { id: memoryId, tasks, analysis: analysisText, timestamp: startTime },
         ...prev,
       ]);
+      startNewList();
     }
   };
-
-  const allTasksDone = tasks.length > 0 && tasks.every((_, i) => completed[i]);
 
   const startNewList = () => {
     setTasks([]);
     setCompleted({});
-    setSuggestion("");
     setListCreated(false);
     setMemoryId(null);
     setStartTime(null);
     setProgress(100);
     setTimeString("");
+    setListKey((k) => k + 1);
+    localStorage.removeItem("draft_tasks");
   };
 
-  if (loadingUser) {
+  if (loadingUser || loadingCurrent) {
     return (
       <Box p={4} textAlign="center">
         <Spinner />
@@ -250,9 +282,7 @@ export const NewAssistant = () => {
 
   return (
     <Box p={4} maxW="600px" mx="auto">
-      <FadeInComponent speed="0.5s">
-        {/* <RoleCanvas role={"sphere"} width={50} height={50} color="#FF69B4" /> */}
-      </FadeInComponent>
+      <FadeInComponent speed="0.5s" />
       <Heading size="md" textAlign="center" mt={4}>
         What do we need to accomplish in the next 16 hours?{" "}
         <IconButton
@@ -265,7 +295,7 @@ export const NewAssistant = () => {
           }}
         />
       </Heading>
-      <VStack spacing={4} align="stretch" mt={4}>
+      <VStack spacing={4} align="stretch" mt={4} key={listKey}>
         {listCreated && (
           <>
             <Text textAlign="center">{timeString}</Text>
@@ -302,9 +332,17 @@ export const NewAssistant = () => {
 
               <Box mt={12} mb={12}>
                 {tasks.map((t, i) => (
-                  <Text key={i}>
-                    {i + 1}. {t}
-                  </Text>
+                  <HStack key={i} justify="space-between">
+                    <Text>
+                      {i + 1}. {t}
+                    </Text>
+                    <IconButton
+                      aria-label="Delete task"
+                      icon={<MinusIcon />}
+                      size="sm"
+                      onClick={() => removeTask(i)}
+                    />
+                  </HStack>
                 ))}
               </Box>
               <Button
@@ -329,16 +367,6 @@ export const NewAssistant = () => {
                   </Text>
                 </HStack>
               ))}
-              {/* {suggestion && (
-                <Box p={2} borderWidth="1px" mt={4} borderRadius="md">
-                  <Text fontSize="sm">{suggestion}</Text>
-                </Box>
-              )} */}
-              {allTasksDone && (
-                <Button mt={4} onClick={startNewList}>
-                  New List
-                </Button>
-              )}
               {history.length > 0 && (
                 <Box mt={4}>
                   <Heading size="sm">History</Heading>
