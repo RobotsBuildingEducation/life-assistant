@@ -33,10 +33,13 @@ import {
 } from "firebase/firestore";
 import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
-import { FadeInComponent } from "../../theme";
+import { FadeInComponent, markdownTheme } from "../../theme";
 import { getGenerativeModel } from "@firebase/vertexai";
+import ReactMarkdown from "react-markdown";
 
-const analysisModel = getGenerativeModel(vertexAI, { model: "gemini-2.0-flash" });
+const analysisModel = getGenerativeModel(vertexAI, {
+  model: "gemini-2.0-flash",
+});
 
 export const NewAssistant = () => {
   const [userDoc, setUserDoc] = useState(null);
@@ -122,7 +125,6 @@ export const NewAssistant = () => {
       setLoadingCurrent(false);
     })();
   }, [userDoc]);
-
 
   useEffect(() => {
     if (!startTime) return;
@@ -228,13 +230,7 @@ export const NewAssistant = () => {
       (async () => {
         try {
           if (finishedId) {
-            const memDoc = doc(
-              database,
-              "users",
-              npub,
-              "memories",
-              finishedId
-            );
+            const memDoc = doc(database, "users", npub, "memories", finishedId);
             await updateDoc(memDoc, {
               completed: tasks.filter((_, i) => newCompleted[i]),
               incompleted: tasks.filter((_, i) => !newCompleted[i]),
@@ -248,9 +244,13 @@ export const NewAssistant = () => {
 
         let analysisText = "";
         try {
-          const prompt = `Goal: ${userDoc?.mainGoal || goalInput}\nTasks completed:\n${tasks
+          const prompt = `Goal: ${
+            userDoc?.mainGoal || goalInput
+          }\nTasks completed:\n${tasks
             .map((t, i) => `${i + 1}. ${t}`)
-            .join("\n")}\n\nBriefly review what was done well relative to the goal and suggest what could be improved.`;
+            .join(
+              "\n"
+            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence. `;
           const result = await analysisModel.generateContent(prompt);
           analysisText = result.response.text();
         } catch (err) {
@@ -402,23 +402,19 @@ export const NewAssistant = () => {
           </Text>
         ) : (
           history.map((h) => (
-            <Box
-              key={h.id}
-              borderWidth="1px"
-              p={2}
-              mt={2}
-              borderRadius="md"
-            >
+            <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
               {h.tasks.map((task, idx) => (
-                <Text key={idx}>{idx + 1}. {task}</Text>
+                <Text key={idx}>
+                  {idx + 1}. {task}
+                </Text>
               ))}
               {h.generating ? (
                 <Spinner size="sm" mt={2} />
               ) : (
                 h.analysis && (
-                  <Text mt={2} fontStyle="italic">
+                  <ReactMarkdown components={markdownTheme}>
                     {h.analysis}
-                  </Text>
+                  </ReactMarkdown>
                 )
               )}
             </Box>
