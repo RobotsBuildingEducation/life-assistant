@@ -114,7 +114,11 @@ export const Landing = () => {
           </Stack>
 
           {nostrPubKey && (
-            <Text fontSize="md">Welcome, {nostrPubKey.substring(0, 8)}</Text>
+            <Text fontSize="md">
+              Welcome, {authField.toLowerCase().startsWith("nsec")
+                ? nostrPubKey.substring(0, 8)
+                : authField}
+            </Text>
           )}
 
           <Box mt={4}>
