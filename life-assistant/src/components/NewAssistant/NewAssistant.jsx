@@ -417,9 +417,11 @@ export const NewAssistant = () => {
           <PieChart
             percentage={globalAverage}
             color="white"
-            textShadow="1px 1px 0px black"
+            textShadow="0.75px 0.75px 0px black"
           />
-          <Text>Signal Score</Text>
+          <Text color="#03fc56" fontWeight={"bolder"}>
+            Signal Score
+          </Text>
         </VStack>
       )}
       <Heading size="lg" textAlign="center" mt={4}>
@@ -438,9 +440,12 @@ export const NewAssistant = () => {
         A task in your mind is an idea. Writing it down turns it into a plan.
         <br />
         <br />
-        What you need to accomplish in the next 16 hours is your <b>signal</b>,
-        everything else is <b>noise.</b> Aim to complete at least 80% of
-        necessary tasks to make progress with your goals.
+        What you need to accomplish in the next 16 hours is your{" "}
+        <span style={{ color: "cyan", fontWeight: "bolder" }}>signal</span>,
+        everything else is{" "}
+        <span style={{ color: "hotpink", fontWeight: "bolder" }}>noise.</span>{" "}
+        Aim to complete at least 80% of necessary tasks to make progress with
+        your goals.
       </Text>
       <VStack spacing={4} align="stretch" mt={4} key={listKey}>
         {loadingCurrent ? (
@@ -490,7 +495,7 @@ export const NewAssistant = () => {
                     isLoading={creating}
                     disabled={!tasks.length}
                   >
-                    Start List
+                    Start Tasks
                   </Button>
                 </>
               ) : (
