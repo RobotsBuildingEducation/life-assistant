@@ -524,13 +524,33 @@ export const NewAssistant = () => {
                             onClick={() => removeTask(i)}
                           />
                         </HStack>
-                        <Input
-                          size="sm"
-                          mt={1}
-                          placeholder="How do you feel or what are you thinking?"
-                          value={t.feeling}
-                          onChange={(e) => updateTaskFeeling(i, e.target.value)}
-                        />
+                        {editingFeeling === i ? (
+                          <HStack align="center" w="100%" mt={1}>
+                            <Textarea
+                              size="sm"
+                              value={t.feeling}
+                              onChange={(e) => updateTaskFeeling(i, e.target.value)}
+                            />
+                            <IconButton
+                              aria-label="Save note"
+                              icon={<CheckIcon />}
+                              size="sm"
+                              onClick={() => setEditingFeeling(null)}
+                            />
+                          </HStack>
+                        ) : (
+                          <HStack align="center" spacing={1} mt={1}>
+                            <Text fontSize="sm" color="gray.500">
+                              {t.feeling || "Add note"}
+                            </Text>
+                            <IconButton
+                              aria-label="Edit note"
+                              icon={<EditIcon />}
+                              size="xs"
+                              onClick={() => setEditingFeeling(i)}
+                            />
+                          </HStack>
+                        )}
                       </Box>
                     ))}
                   </Box>
@@ -556,7 +576,7 @@ export const NewAssistant = () => {
                         </Text>
                         {editingFeeling === i ? (
                           <HStack align="center" w="100%">
-                            <Input
+                            <Textarea
                               size="sm"
                               value={t.feeling}
                               onChange={(e) => updateTaskFeeling(i, e.target.value)}
