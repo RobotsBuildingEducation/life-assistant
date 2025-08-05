@@ -413,7 +413,11 @@ export const NewAssistant = () => {
           display="flex"
           justifyContent={"center"}
         >
-          <PieChart percentage={globalAverage} />
+          <PieChart
+            percentage={60}
+            color="white"
+            textShadow="1px 1px 0px black"
+          />
           <Text>Signal Score</Text>
         </VStack>
       )}
@@ -538,7 +542,13 @@ export const NewAssistant = () => {
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
                 </Text>
-                <PieChart percentage={pct} size="60px" mt={2} />
+                <PieChart
+                  percentage={pct}
+                  size="60px"
+                  mt={4}
+                  mb={4}
+                  color="transparent"
+                />
                 {h.analysis && (
                   <ReactMarkdown components={markdownTheme}>
                     {h.analysis}
