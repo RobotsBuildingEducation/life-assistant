@@ -10,7 +10,6 @@ import {
   Switch,
   Heading,
   Spinner,
-  Progress,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -38,6 +37,7 @@ import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
 import { FadeInComponent, markdownTheme } from "../../theme";
 import { getGenerativeModel } from "@firebase/vertexai";
+import PieChart from "../PieChart";
 import ReactMarkdown from "react-markdown";
 
 const analysisModel = getGenerativeModel(vertexAI, {
@@ -361,8 +361,20 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s" />
-      <Heading size="md" textAlign="center" mt={4}>
-        What do we need to accomplish in the next 16 hours?{" "}
+      {globalAverage !== null && (
+        <VStack
+          fontSize="xs"
+          color="gray.500"
+          alignItems="center"
+          display="flex"
+          justifyContent={"center"}
+        >
+          <PieChart percentage={globalAverage} />
+          <Text>Signal Score</Text>
+        </VStack>
+      )}
+      <Heading size="lg" textAlign="center" mt={4}>
+        What do you need to accomplish in the next 16 hours?{" "}
         <IconButton
           aria-label="Edit goal"
           icon={<EditIcon />}
@@ -374,9 +386,12 @@ export const NewAssistant = () => {
         />
       </Heading>
       <Text fontSize={"sm"} mt={4} mb={12}>
+        A task in your mind is an idea. Writing it down turns it into a plan.
+        <br />
+        <br />
         What you need to accomplish in the next 16 hours is your <b>signal</b>,
         everything else is <b>noise.</b> Aim to complete at least 80% of
-        necessary tasks to make progress.
+        necessary tasks to make progress with your goals.
       </Text>
       <VStack spacing={4} align="stretch" mt={4} key={listKey}>
         {loadingCurrent ? (
@@ -388,7 +403,7 @@ export const NewAssistant = () => {
             {listCreated && (
               <>
                 <Text textAlign="center">{timeString}</Text>
-                <Progress value={progress} size="sm" colorScheme="green" />
+                <PieChart percentage={progress} size="60px" mx="auto" />
               </>
             )}
 
@@ -406,9 +421,9 @@ export const NewAssistant = () => {
                     Add task
                   </Button>
 
-                  <Box mt={12} mb={12}>
+                  <Box mt={12} mb={8}>
                     {tasks.map((t, i) => (
-                      <HStack key={i} justify="space-between">
+                      <HStack key={i} justify="space-between" mt={4}>
                         <Text>
                           {i + 1}. {t}
                         </Text>
@@ -450,11 +465,7 @@ export const NewAssistant = () => {
 
       <Box mt={16}>
         <Heading size="sm">History</Heading>
-        {globalAverage !== null && (
-          <Text fontSize="xs" color="gray.500">
-            Global Average Completion: {globalAverage.toFixed(1)}%
-          </Text>
-        )}
+
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
         ) : history.length === 0 ? (
@@ -468,14 +479,6 @@ export const NewAssistant = () => {
               Math.round(
                 ((h.completed || []).length / (h.tasks?.length || 1)) * 100
               );
-            const color =
-              pct > 80
-                ? "green"
-                : pct > 50
-                ? "blue"
-                : pct < 25
-                ? "red"
-                : "orange";
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
                 {h.tasks.map((task, idx) => (
@@ -486,7 +489,7 @@ export const NewAssistant = () => {
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
                 </Text>
-                <Progress value={pct} size="sm" colorScheme={color} />
+                <PieChart percentage={pct} size="60px" mt={2} />
                 {h.generating ? (
                   <Spinner size="sm" mt={2} />
                 ) : (
@@ -505,7 +508,7 @@ export const NewAssistant = () => {
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Set Your Main Goal</ModalHeader>
+          <ModalHeader>Refine Your Goal</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {userDoc?.mainGoal && (

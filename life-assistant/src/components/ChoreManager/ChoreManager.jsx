@@ -19,7 +19,6 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  Progress,
   Spinner,
   Text,
   VStack,
@@ -30,6 +29,7 @@ import {
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import GlassBox from "../GlassBox";
+import PieChart from "../PieChart";
 import {
   addDoc,
   collection,
@@ -327,13 +327,7 @@ export default function ChoreManager({ userDoc }) {
         </Button>
       </HStack>
 
-      <Progress
-        value={pctGlobal}
-        h="12px"
-        borderRadius="md"
-        colorScheme="yellow"
-        mb={4}
-      />
+      <PieChart percentage={pctGlobal} size="80px" mb={4} mx="auto" />
       <Text fontSize="sm" color="gray.600" mb={6}>
         {totalDone}/{goal} chores completed
       </Text>

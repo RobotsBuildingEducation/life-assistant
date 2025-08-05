@@ -19,7 +19,7 @@ const config = {
 export const styles = {
   global: (props) => ({
     ":root": {
-      "--brand-color": localStorage.getItem("theme_color") || "#66bb6a",
+      "--brand-color": localStorage.getItem("theme_color") || "#feeabd",
       "--font-family":
         localStorage.getItem("theme_font") || "'Inter', sans-serif",
     },
