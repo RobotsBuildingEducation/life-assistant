@@ -373,7 +373,9 @@ export const NewAssistant = () => {
     const historyLines = history
       .map(
         (h, i) =>
-          `Session ${i + 1}: completed - ${(h.completed || []).join(", ")}, incompleted - ${(h.incompleted || []).join(", ")}`
+          `Session ${i + 1}: completed - ${(h.completed || []).join(
+            ", "
+          )}, incompleted - ${(h.incompleted || []).join(", ")}`
       )
       .join("\n");
     const prompt = `Goal: ${goal}\nHistory:\n${historyLines}\nProvide suggestions relative to the goal.`;
@@ -508,7 +510,9 @@ export const NewAssistant = () => {
       <Box mt={16}>
         <HStack justify="space-between" align="center">
           <Heading size="sm">History</Heading>
-          <Button size="xs" onClick={generateAdvice}>Generate advice</Button>
+          <Button size="xs" onClick={generateAdvice}>
+            Generate advice
+          </Button>
         </HStack>
 
         {loadingCurrent ? (
@@ -590,9 +594,7 @@ export const NewAssistant = () => {
           <ModalCloseButton />
           <ModalBody>
             {advice && (
-              <ReactMarkdown components={markdownTheme}>
-                {advice}
-              </ReactMarkdown>
+              <ReactMarkdown components={markdownTheme}>{advice}</ReactMarkdown>
             )}
             {adviceLoading && <Spinner size="sm" mt={2} />}
           </ModalBody>
