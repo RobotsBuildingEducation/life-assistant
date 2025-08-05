@@ -389,7 +389,6 @@ function App() {
               aria-label="Custom color"
               onChange={(e) => updateThemeColor(e.target.value)}
             />
-
             <Text mt={4}>Choose Font</Text>
             <Select
               mt={2}

@@ -361,8 +361,20 @@ export const NewAssistant = () => {
   return (
     <Box p={4} maxW="600px" mx="auto">
       <FadeInComponent speed="0.5s" />
-      <Heading size="md" textAlign="center" mt={4}>
-        What do we need to accomplish in the next 16 hours?{" "}
+      {globalAverage !== null && (
+        <VStack
+          fontSize="xs"
+          color="gray.500"
+          alignItems="center"
+          display="flex"
+          justifyContent={"center"}
+        >
+          <PieChart percentage={globalAverage} />
+          <Text>Signal Score</Text>
+        </VStack>
+      )}
+      <Heading size="lg" textAlign="center" mt={4}>
+        What do you need to accomplish in the next 16 hours?{" "}
         <IconButton
           aria-label="Edit goal"
           icon={<EditIcon />}
@@ -374,9 +386,12 @@ export const NewAssistant = () => {
         />
       </Heading>
       <Text fontSize={"sm"} mt={4} mb={12}>
+        A task in your mind is an idea. Writing it down turns it into a plan.
+        <br />
+        <br />
         What you need to accomplish in the next 16 hours is your <b>signal</b>,
         everything else is <b>noise.</b> Aim to complete at least 80% of
-        necessary tasks to make progress.
+        necessary tasks to make progress with your goals.
       </Text>
       <VStack spacing={4} align="stretch" mt={4} key={listKey}>
         {loadingCurrent ? (
@@ -406,9 +421,9 @@ export const NewAssistant = () => {
                     Add task
                   </Button>
 
-                  <Box mt={12} mb={12}>
+                  <Box mt={12} mb={8}>
                     {tasks.map((t, i) => (
-                      <HStack key={i} justify="space-between">
+                      <HStack key={i} justify="space-between" mt={4}>
                         <Text>
                           {i + 1}. {t}
                         </Text>
@@ -450,13 +465,7 @@ export const NewAssistant = () => {
 
       <Box mt={16}>
         <Heading size="sm">History</Heading>
-        {globalAverage !== null && (
-          <HStack fontSize="xs" color="gray.500" alignItems="center">
-            <Text>Global Average Completion:</Text>
-            <PieChart percentage={globalAverage} size="24px" />
-            <Text>{globalAverage.toFixed(1)}%</Text>
-          </HStack>
-        )}
+
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
         ) : history.length === 0 ? (
