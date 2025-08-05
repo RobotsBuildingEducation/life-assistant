@@ -53,6 +53,7 @@ export const NewAssistant = () => {
   const [stage, setStage] = useState("goal"); // 'goal' or 'tasks'
 
   const [taskInput, setTaskInput] = useState("");
+  const [feelingInput, setFeelingInput] = useState("");
   const [tasks, setTasks] = useState([]);
   const [creating, setCreating] = useState(false);
   const [listCreated, setListCreated] = useState(false);
@@ -68,6 +69,9 @@ export const NewAssistant = () => {
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
 
+  const normalizeTask = (t) =>
+    typeof t === "string" ? { text: t, feeling: "" } : t;
+
   const startNewList = useCallback(() => {
     setTasks([]);
     setCompleted({});
@@ -77,6 +81,8 @@ export const NewAssistant = () => {
     setProgress(100);
     setTimeString("");
     setListKey((k) => k + 1);
+    setTaskInput("");
+    setFeelingInput("");
     localStorage.removeItem("draft_tasks");
   }, []);
 
@@ -195,7 +201,7 @@ export const NewAssistant = () => {
     const saved = localStorage.getItem("draft_tasks");
     if (saved) {
       try {
-        setTasks(JSON.parse(saved));
+        setTasks(JSON.parse(saved).map(normalizeTask));
       } catch {
         /* ignore */
       }
@@ -225,10 +231,17 @@ export const NewAssistant = () => {
       const past = [];
       snap.forEach((docSnap) => {
         const data = docSnap.data();
+        const converted = {
+          id: docSnap.id,
+          ...data,
+          tasks: (data.tasks || []).map(normalizeTask),
+          completed: (data.completed || []).map(normalizeTask),
+          incompleted: (data.incompleted || []).map(normalizeTask),
+        };
         if (!current && !data.finished) {
-          current = { id: docSnap.id, ...data };
+          current = converted;
         } else if (data.finished) {
-          past.push({ id: docSnap.id, ...data });
+          past.push(converted);
         }
       });
       if (current) {
@@ -236,7 +249,7 @@ export const NewAssistant = () => {
         setTasks(current.tasks || []);
         const completedMap = {};
         (current.completed || []).forEach((t) => {
-          const idx = (current.tasks || []).indexOf(t);
+          const idx = (current.tasks || []).findIndex((ct) => ct.text === t.text);
           if (idx >= 0) completedMap[idx] = true;
         });
         setCompleted(completedMap);
@@ -309,8 +322,12 @@ export const NewAssistant = () => {
 
   const addTask = () => {
     if (taskInput.trim()) {
-      setTasks((prev) => [...prev, taskInput.trim()]);
+      setTasks((prev) => [
+        ...prev,
+        { text: taskInput.trim(), feeling: feelingInput.trim() },
+      ]);
       setTaskInput("");
+      setFeelingInput("");
     }
   };
 
@@ -323,6 +340,12 @@ export const NewAssistant = () => {
       localStorage.setItem("draft_tasks", JSON.stringify(tasks));
     }
   }, [tasks, listCreated]);
+
+  const updateTaskFeeling = (index, value) => {
+    setTasks((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, feeling: value } : t))
+    );
+  };
 
   const createList = async () => {
     setCreating(true);
@@ -372,12 +395,15 @@ export const NewAssistant = () => {
   const generateAdvice = async () => {
     const goal = userDoc?.mainGoal || goalInput;
     const historyLines = history
-      .map(
-        (h, i) =>
-          `Session ${i + 1}: completed - ${(h.completed || []).join(
-            ", "
-          )}, incompleted - ${(h.incompleted || []).join(", ")}`
-      )
+      .map((h, i) => {
+        const completedText = (h.completed || [])
+          .map((t) => t.text)
+          .join(", ");
+        const incompletedText = (h.incompleted || [])
+          .map((t) => t.text)
+          .join(", ");
+        return `Session ${i + 1}: completed - ${completedText}, incompleted - ${incompletedText}`;
+      })
       .join("\n");
     const prompt = `Goal: ${goal}\nHistory:\n${historyLines}\nProvide suggestions relative to the goal.`;
     setAdvice("");
@@ -464,30 +490,42 @@ export const NewAssistant = () => {
             {stage === "tasks" &&
               (!listCreated ? (
                 <>
-                  <HStack>
+                  <VStack>
                     <Input
                       placeholder="Write a task"
                       value={taskInput}
                       onChange={(e) => setTaskInput(e.target.value)}
                     />
-                  </HStack>
+                    <Input
+                      placeholder="How do you feel or what are you thinking?"
+                      value={feelingInput}
+                      onChange={(e) => setFeelingInput(e.target.value)}
+                    />
+                  </VStack>
                   <Button leftIcon={<AddIcon />} onClick={addTask}>
                     Add task
                   </Button>
 
                   <Box mt={12} mb={8}>
                     {tasks.map((t, i) => (
-                      <HStack key={i} justify="space-between" mt={4}>
-                        <Text>
-                          {i + 1}. {t}
-                        </Text>
-                        <IconButton
-                          aria-label="Delete task"
-                          icon={<MinusIcon />}
-                          size="sm"
-                          onClick={() => removeTask(i)}
-                        />
-                      </HStack>
+                      <Box key={i} mt={4}>
+                        <HStack justify="space-between">
+                          <Text>
+                            {i + 1}. {t.text}
+                          </Text>
+                          <IconButton
+                            aria-label="Delete task"
+                            icon={<MinusIcon />}
+                            size="sm"
+                            onClick={() => removeTask(i)}
+                          />
+                        </HStack>
+                        {t.feeling && (
+                          <Text fontSize="sm" color="gray.500" ml={4}>
+                            {t.feeling}
+                          </Text>
+                        )}
+                      </Box>
                     ))}
                   </Box>
                   <Button
@@ -501,14 +539,22 @@ export const NewAssistant = () => {
               ) : (
                 <>
                   {tasks.map((t, i) => (
-                    <HStack key={i}>
+                    <HStack key={i} align="flex-start">
                       <Switch
                         isChecked={!!completed[i]}
                         onChange={() => toggleTask(i)}
                       />
-                      <Text>
-                        {i + 1}. {t}
-                      </Text>
+                      <VStack align="start" spacing={1} flex="1">
+                        <Text>
+                          {i + 1}. {t.text}
+                        </Text>
+                        <Input
+                          size="sm"
+                          placeholder="Thoughts or feelings"
+                          value={t.feeling}
+                          onChange={(e) => updateTaskFeeling(i, e.target.value)}
+                        />
+                      </VStack>
                     </HStack>
                   ))}
                 </>
@@ -541,9 +587,16 @@ export const NewAssistant = () => {
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
                 {h.tasks.map((task, idx) => (
-                  <Text key={idx}>
-                    {idx + 1}. {task}
-                  </Text>
+                  <Box key={idx} mb={1}>
+                    <Text>
+                      {idx + 1}. {task.text}
+                    </Text>
+                    {task.feeling && (
+                      <Text fontSize="sm" color="gray.500" ml={4}>
+                        {task.feeling}
+                      </Text>
+                    )}
+                  </Box>
                 ))}
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
