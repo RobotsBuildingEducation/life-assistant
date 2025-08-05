@@ -414,7 +414,7 @@ export const NewAssistant = () => {
           justifyContent={"center"}
         >
           <PieChart
-            percentage={60}
+            percentage={globalAverage}
             color="white"
             textShadow="1px 1px 0px black"
           />
