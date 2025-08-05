@@ -23,18 +23,15 @@ import {
   Input,
   Select,
 } from "@chakra-ui/react";
-import { FiLogOut, FiKey, FiUser, FiGlobe, FiDownload } from "react-icons/fi";
+import { FiGlobe, FiDownload } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
-
-import { FaIdCard, FaKey } from "react-icons/fa6";
 import { IoShareOutline } from "react-icons/io5";
 import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
 import { getUser, updateUser } from "./firebaseResources/store";
-import { ColorModeSwitcher } from "./components/ColorModeSwitcher";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
@@ -214,16 +211,6 @@ function App() {
               onClick={onThemeOpen}
             />
             <IconButton
-              aria-label="Copy Pub  Key"
-              icon={<FaIdCard />}
-              onClick={handleCopyPubKey}
-            />
-            <IconButton
-              aria-label="Copy Secret"
-              icon={<FaKey />}
-              onClick={handleCopySecret}
-            />
-            <IconButton
               aria-label="Network"
               icon={<FiGlobe />}
               onClick={onNetworkOpen}
@@ -255,6 +242,17 @@ function App() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   handleCopyPubKey();
+                }
+              }}
+              mb={2}
+            >
+              🆔 Copy ID
+            </Button>
+            <Button
+              onMouseDown={handleCopySecret}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleCopySecret();
                 }
               }}
               mb={6}
