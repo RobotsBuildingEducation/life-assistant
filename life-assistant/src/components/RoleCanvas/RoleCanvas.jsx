@@ -14,7 +14,7 @@ export function RoleCanvas({
   width = 100,
   height = 100,
   particleCount = 200,
-  color = "#FFD700",
+  color = "#feeabd",
 
   // sphere params
   cycleSpeed = 0.0015,

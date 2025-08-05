@@ -84,7 +84,7 @@ export const Landing = () => {
               justifyContent: "center",
             }}
           >
-            <RoleCanvas role={role} width={200} height={200} color="#FF69B4" />
+            <RoleCanvas role={role} width={200} height={200} color="#feeabd" />
           </div>
           <Heading as="h2" size="lg" textAlign="center" p={0} m={0}>
             16 Hours
@@ -115,7 +115,8 @@ export const Landing = () => {
 
           {nostrPubKey && (
             <Text fontSize="md">
-              Welcome, {authField.toLowerCase().startsWith("nsec")
+              Welcome,{" "}
+              {authField.toLowerCase().startsWith("nsec")
                 ? nostrPubKey.substring(0, 8)
                 : authField}
             </Text>
