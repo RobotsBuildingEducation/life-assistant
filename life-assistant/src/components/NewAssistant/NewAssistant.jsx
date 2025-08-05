@@ -21,7 +21,7 @@ import {
   ModalFooter,
   Textarea,
 } from "@chakra-ui/react";
-import { AddIcon, EditIcon, MinusIcon, CheckIcon } from "@chakra-ui/icons";
+import { AddIcon, MinusIcon, EditIcon } from "@chakra-ui/icons";
 import {
   collection,
   addDoc,
@@ -67,10 +67,9 @@ export const NewAssistant = () => {
   const [globalAverage, setGlobalAverage] = useState(null);
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
-  const [editingFeeling, setEditingFeeling] = useState(null);
+  const [statusText, setStatusText] = useState("");
 
-  const normalizeTask = (t) =>
-    typeof t === "string" ? { text: t, feeling: "" } : t;
+  const normalizeTask = (t) => (typeof t === "string" ? t : t.text || "");
 
   const startNewList = useCallback(() => {
     setTasks([]);
@@ -82,8 +81,9 @@ export const NewAssistant = () => {
     setTimeString("");
     setListKey((k) => k + 1);
     setTaskInput("");
-    setEditingFeeling(null);
+    setStatusText("");
     localStorage.removeItem("draft_tasks");
+    localStorage.removeItem("draft_status");
   }, []);
 
   const finishList = useCallback(
@@ -105,6 +105,7 @@ export const NewAssistant = () => {
         analysis: "",
         generating: true,
         timestamp: startTime,
+        status: statusText,
       };
       setHistory((prev) => [historyEntry, ...prev]);
 
@@ -119,6 +120,7 @@ export const NewAssistant = () => {
             finished: true,
             finishedAt: serverTimestamp(),
             percentage: pct,
+            status: statusText,
           });
         } catch (err) {
           console.error("update memory error", err);
@@ -182,7 +184,7 @@ export const NewAssistant = () => {
         );
       })();
     },
-    [goalInput, memoryId, startNewList, startTime, tasks, userDoc]
+    [goalInput, memoryId, startNewList, startTime, tasks, userDoc, statusText]
   );
 
   const {
@@ -205,6 +207,10 @@ export const NewAssistant = () => {
       } catch {
         /* ignore */
       }
+    }
+    const savedStatus = localStorage.getItem("draft_status");
+    if (savedStatus) {
+      setStatusText(savedStatus);
     }
   }, []);
 
@@ -237,6 +243,7 @@ export const NewAssistant = () => {
           tasks: (data.tasks || []).map(normalizeTask),
           completed: (data.completed || []).map(normalizeTask),
           incompleted: (data.incompleted || []).map(normalizeTask),
+          status: data.status || "",
         };
         if (!current && !data.finished) {
           current = converted;
@@ -249,14 +256,16 @@ export const NewAssistant = () => {
         setTasks(current.tasks || []);
         const completedMap = {};
         (current.completed || []).forEach((t) => {
-          const idx = (current.tasks || []).findIndex((ct) => ct.text === t.text);
+          const idx = (current.tasks || []).findIndex((ct) => ct === t);
           if (idx >= 0) completedMap[idx] = true;
         });
         setCompleted(completedMap);
         setStartTime(current.timestamp?.toDate());
+        setStatusText(current.status || "");
         if ((current.tasks || []).length) {
           setListCreated(true);
           localStorage.removeItem("draft_tasks");
+          localStorage.removeItem("draft_status");
         }
       }
       setHistory(past);
@@ -322,10 +331,7 @@ export const NewAssistant = () => {
 
   const addTask = () => {
     if (taskInput.trim()) {
-      setTasks((prev) => [
-        ...prev,
-        { text: taskInput.trim(), feeling: "" },
-      ]);
+      setTasks((prev) => [...prev, taskInput.trim()]);
       setTaskInput("");
     }
   };
@@ -337,21 +343,19 @@ export const NewAssistant = () => {
   useEffect(() => {
     if (!listCreated) {
       localStorage.setItem("draft_tasks", JSON.stringify(tasks));
+      localStorage.setItem("draft_status", statusText);
     }
-  }, [tasks, listCreated]);
+  }, [tasks, statusText, listCreated]);
 
-  const updateTaskFeeling = async (index, value) => {
-    const updated = tasks.map((t, i) =>
-      i === index ? { ...t, feeling: value } : t
-    );
-    setTasks(updated);
+  const updateStatus = async (value) => {
+    setStatusText(value);
     if (listCreated && memoryId) {
       const npub = localStorage.getItem("local_npub");
       const memDoc = doc(database, "users", npub, "memories", memoryId);
       try {
-        await updateDoc(memDoc, { tasks: updated });
+        await updateDoc(memDoc, { status: value });
       } catch (err) {
-        console.error("update feeling error", err);
+        console.error("update status error", err);
       }
     }
   };
@@ -363,11 +367,13 @@ export const NewAssistant = () => {
     setStartTime(new Date());
     setProgress(100);
     localStorage.removeItem("draft_tasks");
+    localStorage.removeItem("draft_status");
     const npub = localStorage.getItem("local_npub");
     try {
       const memRef = collection(database, "users", npub, "memories");
       const docRef = await addDoc(memRef, {
         tasks,
+        status: statusText,
         completed: [],
         incompleted: tasks,
         timestamp: serverTimestamp(),
@@ -405,12 +411,8 @@ export const NewAssistant = () => {
     const goal = userDoc?.mainGoal || goalInput;
     const historyLines = history
       .map((h, i) => {
-        const completedText = (h.completed || [])
-          .map((t) => t.text)
-          .join(", ");
-        const incompletedText = (h.incompleted || [])
-          .map((t) => t.text)
-          .join(", ");
+        const completedText = (h.completed || []).join(", ");
+        const incompletedText = (h.incompleted || []).join(", ");
         return `Session ${i + 1}: completed - ${completedText}, incompleted - ${incompletedText}`;
       })
       .join("\n");
@@ -512,48 +514,29 @@ export const NewAssistant = () => {
 
                   <Box mt={12} mb={8}>
                     {tasks.map((t, i) => (
-                      <Box key={i} mt={4}>
-                        <HStack justify="space-between">
-                          <Text>
-                            {i + 1}. {t.text}
-                          </Text>
-                          <IconButton
-                            aria-label="Delete task"
-                            icon={<MinusIcon />}
-                            size="sm"
-                            onClick={() => removeTask(i)}
-                          />
-                        </HStack>
-                        {editingFeeling === i ? (
-                          <HStack align="center" w="100%" mt={1}>
-                            <Textarea
-                              size="sm"
-                              value={t.feeling}
-                              onChange={(e) => updateTaskFeeling(i, e.target.value)}
-                            />
-                            <IconButton
-                              aria-label="Save note"
-                              icon={<CheckIcon />}
-                              size="sm"
-                              onClick={() => setEditingFeeling(null)}
-                            />
-                          </HStack>
-                        ) : (
-                          <HStack align="center" spacing={1} mt={1}>
-                            <Text fontSize="sm" color="gray.500">
-                              {t.feeling || "Add note"}
-                            </Text>
-                            <IconButton
-                              aria-label="Edit note"
-                              icon={<EditIcon />}
-                              size="xs"
-                              onClick={() => setEditingFeeling(i)}
-                            />
-                          </HStack>
-                        )}
-                      </Box>
+                      <HStack key={i} justify="space-between" mt={4}>
+                        <Text>
+                          {i + 1}. {t}
+                        </Text>
+                        <IconButton
+                          aria-label="Delete task"
+                          icon={<MinusIcon />}
+                          size="sm"
+                          onClick={() => removeTask(i)}
+                        />
+                      </HStack>
                     ))}
                   </Box>
+
+                  {tasks.length > 0 && (
+                    <Textarea
+                      placeholder="How are you feeling or what are you thinking?"
+                      value={statusText}
+                      onChange={(e) => updateStatus(e.target.value)}
+                      mt={4}
+                    />
+                  )}
+
                   <Button
                     onClick={createList}
                     isLoading={creating}
@@ -565,45 +548,23 @@ export const NewAssistant = () => {
               ) : (
                 <>
                   {tasks.map((t, i) => (
-                    <HStack key={i} align="flex-start">
+                    <HStack key={i}>
                       <Switch
                         isChecked={!!completed[i]}
                         onChange={() => toggleTask(i)}
                       />
-                      <VStack align="start" spacing={1} flex="1">
-                        <Text>
-                          {i + 1}. {t.text}
-                        </Text>
-                        {editingFeeling === i ? (
-                          <HStack align="center" w="100%">
-                            <Textarea
-                              size="sm"
-                              value={t.feeling}
-                              onChange={(e) => updateTaskFeeling(i, e.target.value)}
-                            />
-                            <IconButton
-                              aria-label="Save note"
-                              icon={<CheckIcon />}
-                              size="sm"
-                              onClick={() => setEditingFeeling(null)}
-                            />
-                          </HStack>
-                        ) : (
-                          <HStack align="center" spacing={1}>
-                            <Text fontSize="sm" color="gray.500">
-                              {t.feeling || "Add note"}
-                            </Text>
-                            <IconButton
-                              aria-label="Edit note"
-                              icon={<EditIcon />}
-                              size="xs"
-                              onClick={() => setEditingFeeling(i)}
-                            />
-                          </HStack>
-                        )}
-                      </VStack>
+                      <Text>
+                        {i + 1}. {t}
+                      </Text>
                     </HStack>
                   ))}
+
+                  <Textarea
+                    placeholder="How are you feeling or what are you thinking?"
+                    value={statusText}
+                    onChange={(e) => updateStatus(e.target.value)}
+                    mt={4}
+                  />
                 </>
               ))}
           </>
@@ -634,17 +595,15 @@ export const NewAssistant = () => {
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
                 {h.tasks.map((task, idx) => (
-                  <Box key={idx} mb={1}>
-                    <Text>
-                      {idx + 1}. {task.text}
-                    </Text>
-                    {task.feeling && (
-                      <Text fontSize="sm" color="gray.500" ml={4}>
-                        {task.feeling}
-                      </Text>
-                    )}
-                  </Box>
+                  <Text key={idx} mb={1}>
+                    {idx + 1}. {task}
+                  </Text>
                 ))}
+                {h.status && (
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    {h.status}
+                  </Text>
+                )}
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
                 </Text>
