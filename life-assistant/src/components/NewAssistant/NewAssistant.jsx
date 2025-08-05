@@ -21,7 +21,7 @@ import {
   ModalFooter,
   Textarea,
 } from "@chakra-ui/react";
-import { AddIcon, EditIcon, MinusIcon } from "@chakra-ui/icons";
+import { AddIcon, EditIcon, MinusIcon, CheckIcon } from "@chakra-ui/icons";
 import {
   collection,
   addDoc,
@@ -53,7 +53,6 @@ export const NewAssistant = () => {
   const [stage, setStage] = useState("goal"); // 'goal' or 'tasks'
 
   const [taskInput, setTaskInput] = useState("");
-  const [feelingInput, setFeelingInput] = useState("");
   const [tasks, setTasks] = useState([]);
   const [creating, setCreating] = useState(false);
   const [listCreated, setListCreated] = useState(false);
@@ -68,6 +67,7 @@ export const NewAssistant = () => {
   const [globalAverage, setGlobalAverage] = useState(null);
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
+  const [editingFeeling, setEditingFeeling] = useState(null);
 
   const normalizeTask = (t) =>
     typeof t === "string" ? { text: t, feeling: "" } : t;
@@ -82,7 +82,7 @@ export const NewAssistant = () => {
     setTimeString("");
     setListKey((k) => k + 1);
     setTaskInput("");
-    setFeelingInput("");
+    setEditingFeeling(null);
     localStorage.removeItem("draft_tasks");
   }, []);
 
@@ -324,10 +324,9 @@ export const NewAssistant = () => {
     if (taskInput.trim()) {
       setTasks((prev) => [
         ...prev,
-        { text: taskInput.trim(), feeling: feelingInput.trim() },
+        { text: taskInput.trim(), feeling: "" },
       ]);
       setTaskInput("");
-      setFeelingInput("");
     }
   };
 
@@ -341,10 +340,20 @@ export const NewAssistant = () => {
     }
   }, [tasks, listCreated]);
 
-  const updateTaskFeeling = (index, value) => {
-    setTasks((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, feeling: value } : t))
+  const updateTaskFeeling = async (index, value) => {
+    const updated = tasks.map((t, i) =>
+      i === index ? { ...t, feeling: value } : t
     );
+    setTasks(updated);
+    if (listCreated && memoryId) {
+      const npub = localStorage.getItem("local_npub");
+      const memDoc = doc(database, "users", npub, "memories", memoryId);
+      try {
+        await updateDoc(memDoc, { tasks: updated });
+      } catch (err) {
+        console.error("update feeling error", err);
+      }
+    }
   };
 
   const createList = async () => {
@@ -496,11 +505,6 @@ export const NewAssistant = () => {
                       value={taskInput}
                       onChange={(e) => setTaskInput(e.target.value)}
                     />
-                    <Input
-                      placeholder="How do you feel or what are you thinking?"
-                      value={feelingInput}
-                      onChange={(e) => setFeelingInput(e.target.value)}
-                    />
                   </VStack>
                   <Button leftIcon={<AddIcon />} onClick={addTask}>
                     Add task
@@ -520,11 +524,13 @@ export const NewAssistant = () => {
                             onClick={() => removeTask(i)}
                           />
                         </HStack>
-                        {t.feeling && (
-                          <Text fontSize="sm" color="gray.500" ml={4}>
-                            {t.feeling}
-                          </Text>
-                        )}
+                        <Input
+                          size="sm"
+                          mt={1}
+                          placeholder="How do you feel or what are you thinking?"
+                          value={t.feeling}
+                          onChange={(e) => updateTaskFeeling(i, e.target.value)}
+                        />
                       </Box>
                     ))}
                   </Box>
@@ -548,12 +554,33 @@ export const NewAssistant = () => {
                         <Text>
                           {i + 1}. {t.text}
                         </Text>
-                        <Input
-                          size="sm"
-                          placeholder="Thoughts or feelings"
-                          value={t.feeling}
-                          onChange={(e) => updateTaskFeeling(i, e.target.value)}
-                        />
+                        {editingFeeling === i ? (
+                          <HStack align="center" w="100%">
+                            <Input
+                              size="sm"
+                              value={t.feeling}
+                              onChange={(e) => updateTaskFeeling(i, e.target.value)}
+                            />
+                            <IconButton
+                              aria-label="Save note"
+                              icon={<CheckIcon />}
+                              size="sm"
+                              onClick={() => setEditingFeeling(null)}
+                            />
+                          </HStack>
+                        ) : (
+                          <HStack align="center" spacing={1}>
+                            <Text fontSize="sm" color="gray.500">
+                              {t.feeling || "Add note"}
+                            </Text>
+                            <IconButton
+                              aria-label="Edit note"
+                              icon={<EditIcon />}
+                              size="xs"
+                              onClick={() => setEditingFeeling(i)}
+                            />
+                          </HStack>
+                        )}
                       </VStack>
                     </HStack>
                   ))}
