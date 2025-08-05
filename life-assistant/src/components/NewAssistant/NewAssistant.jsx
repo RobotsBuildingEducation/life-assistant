@@ -413,7 +413,9 @@ export const NewAssistant = () => {
       .map((h, i) => {
         const completedText = (h.completed || []).join(", ");
         const incompletedText = (h.incompleted || []).join(", ");
-        return `Session ${i + 1}: completed - ${completedText}, incompleted - ${incompletedText}`;
+        return `Session ${
+          i + 1
+        }: completed - ${completedText}, incompleted - ${incompletedText}`;
       })
       .join("\n");
     const prompt = `Goal: ${goal}\nHistory:\n${historyLines}\nProvide suggestions relative to the goal.`;
@@ -534,6 +536,7 @@ export const NewAssistant = () => {
                       value={statusText}
                       onChange={(e) => updateStatus(e.target.value)}
                       mt={4}
+                      mb={8}
                     />
                   )}
 
