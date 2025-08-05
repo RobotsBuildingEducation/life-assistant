@@ -19,6 +19,7 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
+  Textarea,
 } from "@chakra-ui/react";
 import { AddIcon, EditIcon, MinusIcon } from "@chakra-ui/icons";
 import {
@@ -585,7 +586,7 @@ export const NewAssistant = () => {
                 </VStack>
               </Box>
             )}
-            <Input
+            <Textarea
               placeholder="Your main goal"
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
