@@ -6,7 +6,7 @@ const PieChart = ({ percentage, size = "80px", ...props }) => (
       w="100%"
       h="100%"
       borderRadius="50%"
-      bg={`conic-gradient(cyan 0% ${percentage}%, orange ${percentage}% 100%)`}
+      bg={`conic-gradient(var(--brand-color) 0% ${percentage}%, #f6ad55 ${percentage}% 100%)`}
     />
     <Text
       position="absolute"

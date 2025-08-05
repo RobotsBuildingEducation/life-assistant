@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Button, Input, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Textarea, Text, VStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { PanRightComponent } from "../../theme";
 import { updateUser } from "../../firebaseResources/store";
@@ -21,7 +21,7 @@ export const Onboarding = () => {
           <Text fontSize="lg" fontWeight="bold">
             What is your main goal?
           </Text>
-          <Input
+          <Textarea
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
             placeholder="e.g. Run a marathon"

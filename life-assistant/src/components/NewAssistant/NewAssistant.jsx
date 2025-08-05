@@ -451,9 +451,11 @@ export const NewAssistant = () => {
       <Box mt={16}>
         <Heading size="sm">History</Heading>
         {globalAverage !== null && (
-          <Text fontSize="xs" color="gray.500">
-            Global Average Completion: {globalAverage.toFixed(1)}%
-          </Text>
+          <HStack fontSize="xs" color="gray.500" alignItems="center">
+            <Text>Global Average Completion:</Text>
+            <PieChart percentage={globalAverage} size="24px" />
+            <Text>{globalAverage.toFixed(1)}%</Text>
+          </HStack>
         )}
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
@@ -497,7 +499,7 @@ export const NewAssistant = () => {
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Set Your Main Goal</ModalHeader>
+          <ModalHeader>Refine Your Goal</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {userDoc?.mainGoal && (
