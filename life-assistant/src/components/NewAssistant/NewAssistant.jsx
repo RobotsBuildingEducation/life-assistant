@@ -10,6 +10,7 @@ import {
   Switch,
   Heading,
   Spinner,
+  Progress,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -63,6 +64,8 @@ export const NewAssistant = () => {
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [listKey, setListKey] = useState(0);
   const [globalAverage, setGlobalAverage] = useState(null);
+  const [advice, setAdvice] = useState("");
+  const [adviceLoading, setAdviceLoading] = useState(false);
 
   const startNewList = useCallback(() => {
     setTasks([]);
@@ -141,8 +144,17 @@ export const NewAssistant = () => {
             .join(
               "\n"
             )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
-          const result = await analysisModel.generateContent(prompt);
-          analysisText = result.response.text();
+          const stream = await analysisModel.generateContentStream(prompt);
+          for await (const chunk of stream.stream) {
+            const txt = chunk.text();
+            analysisText += txt;
+            const partial = analysisText;
+            setHistory((prev) =>
+              prev.map((h) =>
+                h.id === finishedId ? { ...h, analysis: partial } : h
+              )
+            );
+          }
         } catch (err) {
           console.error("analysis error", err);
         }
@@ -170,6 +182,12 @@ export const NewAssistant = () => {
     isOpen: isGoalOpen,
     onOpen: onGoalOpen,
     onClose: onGoalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isAdviceOpen,
+    onOpen: onAdviceOpen,
+    onClose: onAdviceClose,
   } = useDisclosure();
 
   useEffect(() => {
@@ -350,6 +368,32 @@ export const NewAssistant = () => {
     }
   };
 
+  const generateAdvice = async () => {
+    const goal = userDoc?.mainGoal || goalInput;
+    const historyLines = history
+      .map(
+        (h, i) =>
+          `Session ${i + 1}: completed - ${(h.completed || []).join(
+            ", "
+          )}, incompleted - ${(h.incompleted || []).join(", ")}`
+      )
+      .join("\n");
+    const prompt = `Goal: ${goal}\nHistory:\n${historyLines}\nProvide suggestions relative to the goal.`;
+    setAdvice("");
+    setAdviceLoading(true);
+    onAdviceOpen();
+    try {
+      const stream = await analysisModel.generateContentStream(prompt);
+      for await (const chunk of stream.stream) {
+        const txt = chunk.text();
+        setAdvice((prev) => prev + txt);
+      }
+    } catch (err) {
+      console.error("advice error", err);
+    }
+    setAdviceLoading(false);
+  };
+
   if (loadingUser) {
     return (
       <Box p={4} textAlign="center">
@@ -369,7 +413,11 @@ export const NewAssistant = () => {
           display="flex"
           justifyContent={"center"}
         >
-          <PieChart percentage={globalAverage} />
+          <PieChart
+            percentage={60}
+            color="white"
+            textShadow="1px 1px 0px black"
+          />
           <Text>Signal Score</Text>
         </VStack>
       )}
@@ -403,7 +451,7 @@ export const NewAssistant = () => {
             {listCreated && (
               <>
                 <Text textAlign="center">{timeString}</Text>
-                <PieChart percentage={progress} size="60px" mx="auto" />
+                <Progress value={progress} max={100} mt={2} />
               </>
             )}
 
@@ -464,7 +512,12 @@ export const NewAssistant = () => {
       </VStack>
 
       <Box mt={16}>
-        <Heading size="sm">History</Heading>
+        <HStack justify="space-between" align="center">
+          <Heading size="sm">History</Heading>
+          <Button size="xs" onClick={generateAdvice}>
+            Generate advice
+          </Button>
+        </HStack>
 
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
@@ -489,16 +542,19 @@ export const NewAssistant = () => {
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
                 </Text>
-                <PieChart percentage={pct} size="60px" mt={2} />
-                {h.generating ? (
-                  <Spinner size="sm" mt={2} />
-                ) : (
-                  h.analysis && (
-                    <ReactMarkdown components={markdownTheme}>
-                      {h.analysis}
-                    </ReactMarkdown>
-                  )
+                <PieChart
+                  percentage={pct}
+                  size="60px"
+                  mt={4}
+                  mb={4}
+                  color="transparent"
+                />
+                {h.analysis && (
+                  <ReactMarkdown components={markdownTheme}>
+                    {h.analysis}
+                  </ReactMarkdown>
                 )}
+                {h.generating && <Spinner size="sm" mt={2} />}
               </Box>
             );
           })
@@ -538,6 +594,20 @@ export const NewAssistant = () => {
           <ModalFooter>
             <Button onClick={saveGoal}>Save</Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isAdviceOpen} onClose={onAdviceClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Advice</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {advice && (
+              <ReactMarkdown components={markdownTheme}>{advice}</ReactMarkdown>
+            )}
+            {adviceLoading && <Spinner size="sm" mt={2} />}
+          </ModalBody>
         </ModalContent>
       </Modal>
     </Box>
