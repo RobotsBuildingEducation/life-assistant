@@ -10,7 +10,6 @@ import {
   Switch,
   Heading,
   Spinner,
-  Progress,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -38,6 +37,7 @@ import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
 import { FadeInComponent, markdownTheme } from "../../theme";
 import { getGenerativeModel } from "@firebase/vertexai";
+import PieChart from "../PieChart";
 import ReactMarkdown from "react-markdown";
 
 const analysisModel = getGenerativeModel(vertexAI, {
@@ -388,7 +388,7 @@ export const NewAssistant = () => {
             {listCreated && (
               <>
                 <Text textAlign="center">{timeString}</Text>
-                <Progress value={progress} size="sm" colorScheme="green" />
+                <PieChart percentage={progress} size="60px" mx="auto" />
               </>
             )}
 
@@ -468,14 +468,6 @@ export const NewAssistant = () => {
               Math.round(
                 ((h.completed || []).length / (h.tasks?.length || 1)) * 100
               );
-            const color =
-              pct > 80
-                ? "green"
-                : pct > 50
-                ? "blue"
-                : pct < 25
-                ? "red"
-                : "orange";
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
                 {h.tasks.map((task, idx) => (
@@ -486,7 +478,7 @@ export const NewAssistant = () => {
                 <Text fontSize="sm" mt={2}>
                   {pct}% complete
                 </Text>
-                <Progress value={pct} size="sm" colorScheme={color} />
+                <PieChart percentage={pct} size="60px" mt={2} />
                 {h.generating ? (
                   <Spinner size="sm" mt={2} />
                 ) : (
