@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging } from "firebase/messaging";
 import { getVertexAI, Schema } from "@firebase/vertexai";
 
 const firebaseConfig = {
@@ -18,7 +19,8 @@ export const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
 const analytics = getAnalytics(app);
 const vertexAI = getVertexAI(app);
+const messaging = getMessaging(app);
 
 // 3) Pass that into your model’s generationConfig:
 
-export { database, analytics, vertexAI, Schema };
+export { database, analytics, vertexAI, messaging, Schema };
