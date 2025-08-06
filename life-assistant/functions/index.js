@@ -1,10 +1,8 @@
 /* eslint-env node */
 /* eslint-disable no-undef */
+const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onRequest } = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-const fireFunctions = require("firebase-functions");
+const fireFunctions = require("firebase-functions/v1");
 
 admin.initializeApp();
 
@@ -46,15 +44,17 @@ async function checkExpiredLists() {
         percentage: score,
       });
 
-      logger.log("Notification sent", { user: userDoc.id, score });
+      functions.logger.log("Notification sent", { user: userDoc.id, score });
     }
   }
 }
 
-exports.notifyExpiredLists = onSchedule("every 5 minutes", checkExpiredLists);
+exports.notifyExpiredLists = fireFunctions.pubsub
+  .schedule("every 5 minutes")
+  .onRun(checkExpiredLists);
 
 // Schedule a one-time check based on the list creation time
-exports.scheduleExpiredListCheck = onRequest((req, res) => {
+exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
   const created = Number(req.query.created);
   if (!created) {
     res.status(400).send("Missing 'created' timestamp");
@@ -64,7 +64,7 @@ exports.scheduleExpiredListCheck = onRequest((req, res) => {
   const delay = created + 16 * 60 * 60 * 1000 - Date.now();
   const runCheck = () =>
     checkExpiredLists().catch((err) =>
-      logger.error("Scheduled check error", err)
+      functions.logger.error("Scheduled check error", err)
     );
 
   if (delay <= 0) {
@@ -74,6 +74,15 @@ exports.scheduleExpiredListCheck = onRequest((req, res) => {
     setTimeout(runCheck, delay);
     res.send(`Scheduled expired list check in ${delay} ms.`);
   }
+});
+
+exports.testExpiredListCheck = functions.https.onRequest((req, res) => {
+  setTimeout(() => {
+    checkExpiredLists().catch((err) =>
+      functions.logger.error("Test check error", err)
+    );
+  }, 10000);
+  res.send("Scheduled expired list check in 10 seconds.");
 });
 
 const encouragingMessages = [
