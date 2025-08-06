@@ -33,7 +33,7 @@ export const Onboarding = () => {
         try {
           const token = await getToken(messaging, {
             vapidKey:
-              "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+              "BBaY424-8tpFPMhHbK-PIf53jYehVVFw75YV3peEq9DRDXBMh6Mvs5dThQMSZHLlVVMoUiIzbeUccfN2913dYSU",
           });
           await updateDoc(userDocRef, {
             fcmToken: token,
@@ -52,7 +52,7 @@ export const Onboarding = () => {
       try {
         const currentToken = await getToken(messaging, {
           vapidKey:
-            "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+            "BBaY424-8tpFPMhHbK-PIf53jYehVVFw75YV3peEq9DRDXBMh6Mvs5dThQMSZHLlVVMoUiIzbeUccfN2913dYSU",
         });
         if (currentToken) {
           await deleteToken(messaging, currentToken);
@@ -91,13 +91,13 @@ export const Onboarding = () => {
             onChange={(e) => setGoal(e.target.value)}
             placeholder="e.g. Run a marathon"
           />
-          <HStack>
+          {/* <HStack>
             <Text>Enable notifications</Text>
             <Switch
               isChecked={notifications}
               onChange={handleToggleNotifications}
             />
-          </HStack>
+          </HStack> */}
           <Button onClick={handleSave} width="full" isDisabled={!goal.trim()}>
             Save Goal
           </Button>
@@ -106,4 +106,3 @@ export const Onboarding = () => {
     </PanRightComponent>
   );
 };
-

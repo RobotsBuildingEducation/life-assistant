@@ -40,9 +40,6 @@ import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
-import { doc, updateDoc } from "firebase/firestore";
-import { getToken, deleteToken } from "firebase/messaging";
-import { database, messaging } from "./firebaseResources/config";
 
 const ActionButton = ({ href, text }) => (
   <Button
@@ -98,52 +95,13 @@ function App() {
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  const handleToggleNotifications = async () => {
-    const userDocRef = doc(
-      database,
-      "users",
-      localStorage.getItem("local_npub")
-    );
-
-    if (!notificationsEnabled) {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        try {
-          const token = await getToken(messaging, {
-            vapidKey:
-              "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-          });
-          await updateDoc(userDocRef, {
-            fcmToken: token,
-            notifications: true,
-          });
-          setNotificationsEnabled(true);
-        } catch (error) {
-          console.error("Error retrieving FCM token:", error);
-          setNotificationsEnabled(false);
-        }
-      } else {
-        console.log("Notification permission not granted.");
-        setNotificationsEnabled(false);
-      }
-    } else {
-      try {
-        const currentToken = await getToken(messaging, {
-          vapidKey:
-            "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-        });
-        if (currentToken) {
-          await deleteToken(messaging, currentToken);
-        }
-        await updateDoc(userDocRef, {
-          fcmToken: null,
-          notifications: false,
-        });
-      } catch (error) {
-        console.error("Error deleting FCM token:", error);
-      } finally {
-        setNotificationsEnabled(false);
-      }
+  const handleNotificationToggle = async (checked) => {
+    setNotificationsEnabled(checked);
+    const npub = localStorage.getItem("local_npub");
+    try {
+      await updateUser(npub, { notifications: checked });
+    } catch (err) {
+      console.error("Error updating notifications:", err);
     }
   };
 
@@ -237,19 +195,6 @@ function App() {
     });
   };
 
-  const handleSendTestNotification = async () => {
-    try {
-      await fetch("/sendTestNotification");
-      toast({
-        title: "Test notification sent.",
-        status: "info",
-        duration: 2000,
-      });
-    } catch (err) {
-      console.error("Error sending test notification:", err);
-    }
-  };
-
   const updateThemeColor = (color) => {
     document.documentElement.style.setProperty("--brand-color", color);
     localStorage.setItem("theme_color", color);
@@ -295,7 +240,7 @@ function App() {
               icon={<FiDownload />}
               onClick={onInstallOpen}
             />
-
+            {/* 
             <IconButton
               aria-label="Notifications"
               icon={<FiBell />}
@@ -306,7 +251,7 @@ function App() {
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
               onClick={handleSendTestNotification}
-            />
+            /> */}
 
             <IconButton
               aria-label="Sign out"
@@ -335,7 +280,7 @@ function App() {
               <Switch
                 id="notifications-toggle"
                 isChecked={notificationsEnabled}
-                onChange={handleToggleNotifications}
+                onChange={(e) => handleNotificationToggle(e.target.checked)}
               />
             </FormControl>
           </ModalBody>
