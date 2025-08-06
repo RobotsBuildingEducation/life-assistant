@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+        "breaking-change": " npm run start -- --port=4445"
+
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",
