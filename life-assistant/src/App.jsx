@@ -195,16 +195,16 @@ function App() {
     });
   };
 
-  const handleScheduleExpiry = async () => {
+  const handleSendTestNotification = async () => {
     try {
-      await fetch("/testExpiredListCheck");
+      await fetch("/sendTestNotification");
       toast({
-        title: "Expiry check scheduled in 10s.",
+        title: "Test notification sent.",
         status: "info",
         duration: 2000,
       });
     } catch (err) {
-      console.error("Error scheduling expiry:", err);
+      console.error("Error sending test notification:", err);
     }
   };
 
@@ -261,9 +261,9 @@ function App() {
             />
 
             <IconButton
-              aria-label="Test expiry"
+              aria-label="Test notification"
               icon={<LuBadgeCheck />}
-              onClick={handleScheduleExpiry}
+              onClick={handleSendTestNotification}
             />
 
             <IconButton

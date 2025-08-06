@@ -76,13 +76,38 @@ exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
   }
 });
 
-exports.testExpiredListCheck = functions.https.onRequest((req, res) => {
-  setTimeout(() => {
-    checkExpiredLists().catch((err) =>
-      functions.logger.error("Test check error", err)
-    );
-  }, 10000);
-  res.send("Scheduled expired list check in 10 seconds.");
+exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
+  try {
+    const tokensSnapshot = await admin
+      .firestore()
+      .collection("users")
+      .where("fcmToken", "!=", null)
+      .get();
+
+    const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+
+    if (tokens.length === 0) {
+      res.status(200).send("No tokens available for notification.");
+      return;
+    }
+
+    const messagePayload = {
+      notification: {
+        title: "Test notification",
+        body: "This is a test push from Life Assistant.",
+      },
+      tokens,
+    };
+
+    const response = await admin
+      .messaging()
+      .sendEachForMulticast(messagePayload);
+    functions.logger.info("Test notifications sent", response);
+    res.send("Test notification sent.");
+  } catch (err) {
+    functions.logger.error("Error sending test notification", err);
+    res.status(500).send("Error sending test notification.");
+  }
 });
 
 const encouragingMessages = [
