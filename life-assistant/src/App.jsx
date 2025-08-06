@@ -196,11 +196,11 @@ function App() {
   };
 
   const handleScheduleExpiry = async () => {
-    const created = Date.now() - 16 * 60 * 60 * 1000 + 5000;
+    const created = Date.now() - 16 * 60 * 60 * 1000 + 10000;
     try {
       await fetch(`/scheduleExpiredListCheck?created=${created}`);
       toast({
-        title: "Expiry check scheduled in 5s.",
+        title: "Expiry check scheduled in 10s.",
         status: "info",
         duration: 2000,
       });
