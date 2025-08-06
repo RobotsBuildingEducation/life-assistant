@@ -52,12 +52,25 @@ async function checkExpiredLists() {
 
 exports.notifyExpiredLists = onSchedule("every 5 minutes", checkExpiredLists);
 
-// Testing function that runs the check once after a 10 second delay
-exports.testNotifyExpiredLists = onRequest(async (req, res) => {
-  setTimeout(() => {
+// Schedule a one-time check based on the list creation time
+exports.scheduleExpiredListCheck = onRequest((req, res) => {
+  const created = Number(req.query.created);
+  if (!created) {
+    res.status(400).send("Missing 'created' timestamp");
+    return;
+  }
+
+  const delay = created + 16 * 60 * 60 * 1000 - Date.now();
+  const runCheck = () =>
     checkExpiredLists().catch((err) =>
-      logger.error("Test check error", err)
+      logger.error("Scheduled check error", err)
     );
-  }, 10000);
-  res.send("Scheduled a single expired list check in 10 seconds.");
+
+  if (delay <= 0) {
+    runCheck();
+    res.send("List already expired. Ran check immediately.");
+  } else {
+    setTimeout(runCheck, delay);
+    res.send(`Scheduled expired list check in ${delay} ms.`);
+  }
 });

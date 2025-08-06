@@ -195,6 +195,20 @@ function App() {
     });
   };
 
+  const handleScheduleExpiry = async () => {
+    const created = Date.now() - 16 * 60 * 60 * 1000 + 5000;
+    try {
+      await fetch(`/scheduleExpiredListCheck?created=${created}`);
+      toast({
+        title: "Expiry check scheduled in 5s.",
+        status: "info",
+        duration: 2000,
+      });
+    } catch (err) {
+      console.error("Error scheduling expiry:", err);
+    }
+  };
+
   const updateThemeColor = (color) => {
     document.documentElement.style.setProperty("--brand-color", color);
     localStorage.setItem("theme_color", color);
@@ -245,6 +259,12 @@ function App() {
               aria-label="Notifications"
               icon={<FiBell />}
               onClick={onNotificationsOpen}
+            />
+
+            <IconButton
+              aria-label="Test expiry"
+              icon={<LuBadgeCheck />}
+              onClick={handleScheduleExpiry}
             />
 
             <IconButton
