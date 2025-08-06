@@ -1,11 +1,14 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
 const admin = require("firebase-admin");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 
 admin.initializeApp();
 
 // Checks for unfinished task lists older than 16 hours and notifies the user.
-exports.notifyExpiredLists = onSchedule("every 5 minutes", async () => {
+async function checkExpiredLists() {
   const db = admin.firestore();
   const cutoff = admin.firestore.Timestamp.fromMillis(
     Date.now() - 16 * 60 * 60 * 1000
@@ -45,4 +48,16 @@ exports.notifyExpiredLists = onSchedule("every 5 minutes", async () => {
       logger.log("Notification sent", { user: userDoc.id, score });
     }
   }
+}
+
+exports.notifyExpiredLists = onSchedule("every 5 minutes", checkExpiredLists);
+
+// Testing function that runs the check once after a 10 second delay
+exports.testNotifyExpiredLists = onRequest(async (req, res) => {
+  setTimeout(() => {
+    checkExpiredLists().catch((err) =>
+      logger.error("Test check error", err)
+    );
+  }, 10000);
+  res.send("Scheduled a single expired list check in 10 seconds.");
 });
