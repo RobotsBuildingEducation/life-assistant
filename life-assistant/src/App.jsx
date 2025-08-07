@@ -40,6 +40,9 @@ import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
+import { database, messaging } from "./firebaseResources/config";
+import { doc } from "firebase/firestore";
+import { getToken } from "firebase/messaging";
 
 const ActionButton = ({ href, text }) => (
   <Button
@@ -301,7 +304,7 @@ function App() {
             <IconButton
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
-              onClick={handleSendTestNotification}
+              onClick={handleToggleNotifications}
             />
 
             <IconButton
