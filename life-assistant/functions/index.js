@@ -78,13 +78,20 @@ exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
 
 exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
   try {
-    const tokensSnapshot = await admin
-      .firestore()
-      .collection("users")
-      .where("fcmToken", "!=", null)
-      .get();
+    // Allow an optional token query param to target a single device.
+    const tokenParam = req.query.token;
+    let tokens = [];
 
-    const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+    if (tokenParam) {
+      tokens = [tokenParam];
+    } else {
+      const tokensSnapshot = await admin
+        .firestore()
+        .collection("users")
+        .where("fcmToken", "!=", null)
+        .get();
+      tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+    }
 
     if (tokens.length === 0) {
       res.status(200).send("No tokens available for notification.");

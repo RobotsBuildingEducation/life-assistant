@@ -1,3 +1,5 @@
+/* eslint-env serviceworker */
+/* global firebase, importScripts */
 // public/firebase-messaging-sw.js
 
 // Import Firebase scripts required for the service worker.

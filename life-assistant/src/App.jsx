@@ -41,8 +41,8 @@ import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
-import { doc } from "firebase/firestore";
-import { getToken } from "firebase/messaging";
+import { doc, updateDoc } from "firebase/firestore";
+import { getToken, deleteToken } from "firebase/messaging";
 
 const ActionButton = ({ href, text }) => (
   <Button
@@ -217,6 +217,13 @@ function App() {
 
           // Save the token in Firestore
           updateDoc(userDocRef, { fcmToken: token });
+
+          // Trigger a test notification 10 seconds after enabling
+          setTimeout(() => {
+            fetch(
+              `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
+            ).catch((err) => console.error("Test notification failed", err));
+          }, 10000);
         } catch (error) {
           console.error("Error retrieving FCM token:", error);
           setNotificationsEnabled(false);
