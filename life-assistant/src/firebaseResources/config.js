@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging, isSupported } from "firebase/messaging";
 import { getVertexAI, Schema } from "@firebase/vertexai";
 
 const firebaseConfig = {
@@ -19,6 +20,19 @@ const database = getFirestore(app);
 const analytics = getAnalytics(app);
 const vertexAI = getVertexAI(app);
 
+let messaging = null;
+async function initMessaging() {
+  if (await isSupported()) {
+    messaging = getMessaging(app);
+    // Proceed with messaging-related logic
+    console.log("messaging...", messaging);
+  } else {
+    console.warn("Firebase Messaging is not supported in this environment.");
+    // Optionally, set up a fallback or skip messaging entirely
+  }
+}
+initMessaging();
+
 // 3) Pass that into your model’s generationConfig:
 
-export { database, analytics, vertexAI, Schema };
+export { database, analytics, vertexAI, messaging, Schema };

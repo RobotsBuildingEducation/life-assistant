@@ -1,11 +1,13 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
+const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const logger = require("firebase-functions/logger");
+const fireFunctions = require("firebase-functions/v1");
 
 admin.initializeApp();
 
 // Checks for unfinished task lists older than 16 hours and notifies the user.
-exports.notifyExpiredLists = onSchedule("every 5 minutes", async () => {
+async function checkExpiredLists() {
   const db = admin.firestore();
   const cutoff = admin.firestore.Timestamp.fromMillis(
     Date.now() - 16 * 60 * 60 * 1000
@@ -42,7 +44,113 @@ exports.notifyExpiredLists = onSchedule("every 5 minutes", async () => {
         percentage: score,
       });
 
-      logger.log("Notification sent", { user: userDoc.id, score });
+      functions.logger.log("Notification sent", { user: userDoc.id, score });
     }
   }
+}
+
+exports.notifyExpiredLists = fireFunctions.pubsub
+  .schedule("every 5 minutes")
+  .onRun(checkExpiredLists);
+
+// Schedule a one-time check based on the list creation time
+exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
+  const created = Number(req.query.created);
+  if (!created) {
+    res.status(400).send("Missing 'created' timestamp");
+    return;
+  }
+
+  const delay = created + 16 * 60 * 60 * 1000 - Date.now();
+  const runCheck = () =>
+    checkExpiredLists().catch((err) =>
+      functions.logger.error("Scheduled check error", err)
+    );
+
+  if (delay <= 0) {
+    runCheck();
+    res.send("List already expired. Ran check immediately.");
+  } else {
+    setTimeout(runCheck, delay);
+    res.send(`Scheduled expired list check in ${delay} ms.`);
+  }
 });
+
+exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
+  try {
+    const tokensSnapshot = await admin
+      .firestore()
+      .collection("users")
+      .where("fcmToken", "!=", null)
+      .get();
+
+    const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+
+    if (tokens.length === 0) {
+      res.status(200).send("No tokens available for notification.");
+      return;
+    }
+
+    const messagePayload = {
+      notification: {
+        title: "Test notification",
+        body: "This is a test push from Life Assistant.",
+      },
+      tokens,
+    };
+
+    const response = await admin
+      .messaging()
+      .sendEachForMulticast(messagePayload);
+    functions.logger.info("Test notifications sent", response);
+    res.send("Test notification sent.");
+  } catch (err) {
+    functions.logger.error("Error sending test notification", err);
+    res.status(500).send("Error sending test notification.");
+  }
+});
+
+const encouragingMessages = [
+  { title: "Keep going!", body: "You're doing great today." },
+  { title: "Stay focused", body: "Remember your goals and keep moving." },
+  { title: "You got this", body: "Small steps lead to big results." },
+];
+
+exports.sendDailyEncouragingMessage = fireFunctions.pubsub
+  .schedule("13 10 * * *")
+  .timeZone("America/Los_Angeles")
+  .onRun(async () => {
+    try {
+      const tokensSnapshot = await admin
+        .firestore()
+        .collection("users")
+        .where("fcmToken", "!=", null)
+        .get();
+
+      const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+
+      if (tokens.length > 0) {
+        const randomIndex = Math.floor(
+          Math.random() * encouragingMessages.length
+        );
+        const selectedMessage = encouragingMessages[randomIndex];
+
+        const messagePayload = {
+          notification: {
+            title: selectedMessage.title,
+            body: selectedMessage.body,
+          },
+          tokens,
+        };
+
+        const response = await admin
+          .messaging()
+          .sendEachForMulticast(messagePayload);
+        console.log("Successfully sent messages:", response);
+      } else {
+        console.log("No tokens available for sending notifications.");
+      }
+    } catch (error) {
+      console.error("Error sending daily notification:", error);
+    }
+  });
