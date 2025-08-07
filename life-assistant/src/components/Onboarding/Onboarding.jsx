@@ -91,13 +91,13 @@ export const Onboarding = () => {
             onChange={(e) => setGoal(e.target.value)}
             placeholder="e.g. Run a marathon"
           />
-          {/* <HStack>
+          <HStack>
             <Text>Enable notifications</Text>
             <Switch
               isChecked={notifications}
               onChange={handleToggleNotifications}
             />
-          </HStack> */}
+          </HStack>
           <Button onClick={handleSave} width="full" isDisabled={!goal.trim()}>
             Save Goal
           </Button>

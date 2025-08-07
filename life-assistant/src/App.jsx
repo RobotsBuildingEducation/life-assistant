@@ -194,6 +194,57 @@ function App() {
       duration: 2000,
     });
   };
+  const handleToggleNotifications = async () => {
+    const userDocRef = doc(
+      database,
+      "users",
+      localStorage.getItem("local_npub")
+    );
+
+    if (!notificationsEnabled) {
+      // Enable notifications: request permission and get token
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(true);
+      if (permission === "granted") {
+        try {
+          const token = await getToken(messaging, {
+            vapidKey:
+              "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+          });
+
+          // Save the token in Firestore
+          updateDoc(userDocRef, { fcmToken: token });
+        } catch (error) {
+          console.error("Error retrieving FCM token:", error);
+          setNotificationsEnabled(false);
+        }
+      } else {
+        console.log("Notification permission not granted.");
+        setNotificationsEnabled(false);
+      }
+    } else {
+      // Disable notifications: delete the token and update Firestore
+      try {
+        const currentToken = await getToken(messaging, {
+          vapidKey:
+            "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+        });
+        if (currentToken) {
+          const success = await deleteToken(messaging, currentToken);
+          if (success) {
+            console.log("FCM token deleted successfully.");
+          } else {
+            console.error("Failed to delete token.");
+          }
+        }
+        // Remove token from Firestore
+        await updateDoc(userDocRef, { fcmToken: null });
+        setNotificationsEnabled(false);
+      } catch (error) {
+        console.error("Error deleting FCM token:", error);
+      }
+    }
+  };
 
   const updateThemeColor = (color) => {
     document.documentElement.style.setProperty("--brand-color", color);
@@ -240,7 +291,7 @@ function App() {
               icon={<FiDownload />}
               onClick={onInstallOpen}
             />
-            {/* 
+
             <IconButton
               aria-label="Notifications"
               icon={<FiBell />}
@@ -251,7 +302,7 @@ function App() {
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
               onClick={handleSendTestNotification}
-            /> */}
+            />
 
             <IconButton
               aria-label="Sign out"
