@@ -98,16 +98,6 @@ function App() {
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  const handleNotificationToggle = async (checked) => {
-    setNotificationsEnabled(checked);
-    const npub = localStorage.getItem("local_npub");
-    try {
-      await updateUser(npub, { notifications: checked });
-    } catch (err) {
-      console.error("Error updating notifications:", err);
-    }
-  };
-
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
     const retrieveUser = async (npub) => {
@@ -197,17 +187,20 @@ function App() {
       duration: 2000,
     });
   };
-  const handleToggleNotifications = async () => {
-    const userDocRef = doc(
-      database,
-      "users",
-      localStorage.getItem("local_npub")
-    );
+  const handleNotificationToggle = async (checked) => {
+    setNotificationsEnabled(checked);
+    const npub = localStorage.getItem("local_npub");
+    try {
+      await updateUser(npub, { notifications: checked });
+    } catch (err) {
+      console.error("Error updating notifications:", err);
+    }
 
-    if (!notificationsEnabled) {
+    const userDocRef = doc(database, "users", npub);
+
+    if (checked) {
       // Enable notifications: request permission and get token
       const permission = await Notification.requestPermission();
-      setNotificationsEnabled(true);
       if (permission === "granted") {
         try {
           const token = await getToken(messaging, {
@@ -215,8 +208,7 @@ function App() {
               "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
           });
 
-          // Save the token in Firestore
-          updateDoc(userDocRef, { fcmToken: token });
+          await updateDoc(userDocRef, { fcmToken: token });
 
           // Trigger a test notification 10 seconds after enabling
           setTimeout(() => {
@@ -227,32 +219,38 @@ function App() {
         } catch (error) {
           console.error("Error retrieving FCM token:", error);
           setNotificationsEnabled(false);
+          await updateUser(npub, { notifications: false });
         }
       } else {
         console.log("Notification permission not granted.");
         setNotificationsEnabled(false);
+        await updateUser(npub, { notifications: false });
       }
     } else {
       // Disable notifications: delete the token and update Firestore
       try {
-        const currentToken = await getToken(messaging, {
-          vapidKey:
-            "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-        });
-        if (currentToken) {
-          const success = await deleteToken(messaging, currentToken);
-          if (success) {
-            console.log("FCM token deleted successfully.");
-          } else {
-            console.error("Failed to delete token.");
-          }
+        const success = await deleteToken(messaging);
+        if (!success) {
+          console.error("Failed to delete token.");
         }
-        // Remove token from Firestore
         await updateDoc(userDocRef, { fcmToken: null });
-        setNotificationsEnabled(false);
       } catch (error) {
         console.error("Error deleting FCM token:", error);
       }
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    try {
+      const token = await getToken(messaging, {
+        vapidKey:
+          "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+      });
+      await fetch(
+        `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
+      );
+    } catch (err) {
+      console.error("Test notification failed", err);
     }
   };
 
@@ -311,7 +309,7 @@ function App() {
             <IconButton
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
-              onClick={handleToggleNotifications}
+              onClick={handleSendTestNotification}
             />
 
             <IconButton
