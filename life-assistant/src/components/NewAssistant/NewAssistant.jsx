@@ -364,7 +364,8 @@ export const NewAssistant = () => {
     setCreating(true);
     setListCreated(true);
     setCompleted({});
-    setStartTime(new Date());
+    const created = Date.now();
+    setStartTime(new Date(created));
     setProgress(100);
     localStorage.removeItem("draft_tasks");
     localStorage.removeItem("draft_status");
@@ -380,6 +381,9 @@ export const NewAssistant = () => {
         finished: false,
       });
       setMemoryId(docRef.id);
+      fetch(
+        `https://us-central1-datachecking-7997c.cloudfunctions.net/scheduleExpiredListCheck?created=${created}&userId=${npub}`
+      ).catch((err) => console.error("schedule list check error", err));
     } catch (err) {
       console.error("create list error", err);
     }

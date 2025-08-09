@@ -26,7 +26,7 @@ import {
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
-import { FiGlobe, FiDownload, FiBell } from "react-icons/fi";
+import { FiGlobe, FiDownload, FiBell, FiShield } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
 import { IoShareOutline } from "react-icons/io5";
@@ -43,6 +43,7 @@ import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc } from "firebase/firestore";
 import { getToken, deleteToken } from "firebase/messaging";
+import { isUnsupportedBrowser } from "./utils/browser";
 
 const ActionButton = ({ href, text }) => (
   <Button
@@ -73,6 +74,12 @@ function App() {
 
   // Disclosure hooks for Network and Install modals
   const {
+    isOpen: isPrivacyOpen,
+    onOpen: onPrivacyOpen,
+    onClose: onPrivacyClose,
+  } = useDisclosure(); // NEW
+
+  const {
     isOpen: isNetworkOpen,
     onOpen: onNetworkOpen,
     onClose: onNetworkClose,
@@ -97,16 +104,6 @@ function App() {
     localStorage.getItem("theme_font") || "'Inter', sans-serif"
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-
-  const handleNotificationToggle = async (checked) => {
-    setNotificationsEnabled(checked);
-    const npub = localStorage.getItem("local_npub");
-    try {
-      await updateUser(npub, { notifications: checked });
-    } catch (err) {
-      console.error("Error updating notifications:", err);
-    }
-  };
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
@@ -197,17 +194,20 @@ function App() {
       duration: 2000,
     });
   };
-  const handleToggleNotifications = async () => {
-    const userDocRef = doc(
-      database,
-      "users",
-      localStorage.getItem("local_npub")
-    );
+  const handleNotificationToggle = async (checked) => {
+    setNotificationsEnabled(checked);
+    const npub = localStorage.getItem("local_npub");
+    try {
+      await updateUser(npub, { notifications: checked });
+    } catch (err) {
+      console.error("Error updating notifications:", err);
+    }
 
-    if (!notificationsEnabled) {
+    const userDocRef = doc(database, "users", npub);
+
+    if (checked) {
       // Enable notifications: request permission and get token
       const permission = await Notification.requestPermission();
-      setNotificationsEnabled(true);
       if (permission === "granted") {
         try {
           const token = await getToken(messaging, {
@@ -215,8 +215,7 @@ function App() {
               "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
           });
 
-          // Save the token in Firestore
-          updateDoc(userDocRef, { fcmToken: token });
+          await updateDoc(userDocRef, { fcmToken: token });
 
           // Trigger a test notification 10 seconds after enabling
           setTimeout(() => {
@@ -227,32 +226,38 @@ function App() {
         } catch (error) {
           console.error("Error retrieving FCM token:", error);
           setNotificationsEnabled(false);
+          await updateUser(npub, { notifications: false });
         }
       } else {
         console.log("Notification permission not granted.");
         setNotificationsEnabled(false);
+        await updateUser(npub, { notifications: false });
       }
     } else {
       // Disable notifications: delete the token and update Firestore
       try {
-        const currentToken = await getToken(messaging, {
-          vapidKey:
-            "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-        });
-        if (currentToken) {
-          const success = await deleteToken(messaging, currentToken);
-          if (success) {
-            console.log("FCM token deleted successfully.");
-          } else {
-            console.error("Failed to delete token.");
-          }
+        const success = await deleteToken(messaging);
+        if (!success) {
+          console.error("Failed to delete token.");
         }
-        // Remove token from Firestore
         await updateDoc(userDocRef, { fcmToken: null });
-        setNotificationsEnabled(false);
       } catch (error) {
         console.error("Error deleting FCM token:", error);
       }
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    try {
+      const token = await getToken(messaging, {
+        vapidKey:
+          "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
+      });
+      await fetch(
+        `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
+      );
+    } catch (err) {
+      console.error("Test notification failed", err);
     }
   };
 
@@ -285,6 +290,11 @@ function App() {
       {showHeader && (
         <Box p={4}>
           <HStack spacing={3} justify="flex-end">
+            <IconButton
+              aria-label="Privacy"
+              icon={<FiShield />}
+              onClick={onPrivacyOpen}
+            />{" "}
             {/* <ColorModeSwitcher /> */}
             <IconButton
               aria-label="Themes"
@@ -301,19 +311,16 @@ function App() {
               icon={<FiDownload />}
               onClick={onInstallOpen}
             />
-
             <IconButton
               aria-label="Notifications"
               icon={<FiBell />}
               onClick={onNotificationsOpen}
             />
-
-            <IconButton
+            {/* <IconButton
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
-              onClick={handleToggleNotifications}
-            />
-
+              onClick={handleSendTestNotification}
+            /> */}
             <IconButton
               aria-label="Sign out"
               icon={<GiExitDoor />}
@@ -342,8 +349,15 @@ function App() {
                 id="notifications-toggle"
                 isChecked={notificationsEnabled}
                 onChange={(e) => handleNotificationToggle(e.target.checked)}
+                isDisabled={isUnsupportedBrowser()}
               />
             </FormControl>
+            {isUnsupportedBrowser() ? (
+              <Text mt={4}>
+                The in-app browser you're using doesn't allow device
+                notifications. Install the app to unlock this feature.
+              </Text>
+            ) : null}
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onNotificationsClose}>
@@ -530,6 +544,26 @@ function App() {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onThemeClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isPrivacyOpen} onClose={onPrivacyClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Privacy</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              we save the data you input to make AI responses better and more
+              personalized. Your identity is private so we can't tell who
+              anybody is.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" onMouseDown={onPrivacyClose}>
               Close
             </Button>
           </ModalFooter>

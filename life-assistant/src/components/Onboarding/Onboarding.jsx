@@ -14,6 +14,7 @@ import { updateUser } from "../../firebaseResources/store";
 import { doc, updateDoc } from "firebase/firestore";
 import { getToken, deleteToken } from "firebase/messaging";
 import { database, messaging } from "../../firebaseResources/config";
+import { isUnsupportedBrowser } from "../../utils/browser";
 
 export const Onboarding = () => {
   const navigate = useNavigate();
@@ -91,13 +92,15 @@ export const Onboarding = () => {
             onChange={(e) => setGoal(e.target.value)}
             placeholder="e.g. Run a marathon"
           />
-          <HStack>
-            <Text>Enable notifications</Text>
-            <Switch
-              isChecked={notifications}
-              onChange={handleToggleNotifications}
-            />
-          </HStack>
+          {isUnsupportedBrowser() ? null : (
+            <HStack>
+              <Text>Enable notifications</Text>
+              <Switch
+                isChecked={notifications}
+                onChange={handleToggleNotifications}
+              />
+            </HStack>
+          )}
           <Button onClick={handleSave} width="full" isDisabled={!goal.trim()}>
             Save Goal
           </Button>

@@ -7,14 +7,23 @@ const fireFunctions = require("firebase-functions/v1");
 admin.initializeApp();
 
 // Checks for unfinished task lists older than 16 hours and notifies the user.
-async function checkExpiredLists() {
+// If a userId is provided, only that user's lists are checked.
+async function checkExpiredLists(userId) {
   const db = admin.firestore();
   const cutoff = admin.firestore.Timestamp.fromMillis(
     Date.now() - 16 * 60 * 60 * 1000
   );
 
-  const usersSnap = await db.collection("users").get();
-  for (const userDoc of usersSnap.docs) {
+  let users = [];
+  if (userId) {
+    const doc = await db.collection("users").doc(userId).get();
+    if (doc.exists) users = [doc];
+  } else {
+    const usersSnap = await db.collection("users").get();
+    users = usersSnap.docs;
+  }
+
+  for (const userDoc of users) {
     const token = userDoc.get("fcmToken");
     if (!token) continue;
 
@@ -56,14 +65,15 @@ exports.notifyExpiredLists = fireFunctions.pubsub
 // Schedule a one-time check based on the list creation time
 exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
   const created = Number(req.query.created);
-  if (!created) {
-    res.status(400).send("Missing 'created' timestamp");
+  const userId = req.query.userId;
+  if (!created || !userId) {
+    res.status(400).send("Missing 'created' timestamp or 'userId'");
     return;
   }
 
   const delay = created + 16 * 60 * 60 * 1000 - Date.now();
   const runCheck = () =>
-    checkExpiredLists().catch((err) =>
+    checkExpiredLists(userId).catch((err) =>
       functions.logger.error("Scheduled check error", err)
     );
 
@@ -72,29 +82,17 @@ exports.scheduleExpiredListCheck = functions.https.onRequest((req, res) => {
     res.send("List already expired. Ran check immediately.");
   } else {
     setTimeout(runCheck, delay);
-    res.send(`Scheduled expired list check in ${delay} ms.`);
+    res.send(
+      `Scheduled expired list check for user ${userId} in ${delay} ms.`
+    );
   }
 });
 
 exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
   try {
-    // Allow an optional token query param to target a single device.
-    const tokenParam = req.query.token;
-    let tokens = [];
-
-    if (tokenParam) {
-      tokens = [tokenParam];
-    } else {
-      const tokensSnapshot = await admin
-        .firestore()
-        .collection("users")
-        .where("fcmToken", "!=", null)
-        .get();
-      tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
-    }
-
-    if (tokens.length === 0) {
-      res.status(200).send("No tokens available for notification.");
+    const token = req.query.token;
+    if (!token) {
+      res.status(400).send("Missing 'token' parameter");
       return;
     }
 
@@ -103,13 +101,11 @@ exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
         title: "Test notification",
         body: "This is a test push from Life Assistant.",
       },
-      tokens,
+      token,
     };
 
-    const response = await admin
-      .messaging()
-      .sendEachForMulticast(messagePayload);
-    functions.logger.info("Test notifications sent", response);
+    const response = await admin.messaging().send(messagePayload);
+    functions.logger.info("Test notification sent", response);
     res.send("Test notification sent.");
   } catch (err) {
     functions.logger.error("Error sending test notification", err);
