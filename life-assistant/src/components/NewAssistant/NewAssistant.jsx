@@ -10,7 +10,6 @@ import {
   Switch,
   Heading,
   Spinner,
-  Progress,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -35,6 +34,7 @@ import {
   increment,
   getDoc,
 } from "firebase/firestore";
+import { motion } from "framer-motion";
 import { database, vertexAI } from "../../firebaseResources/config";
 import { getUser, updateUser } from "../../firebaseResources/store";
 import { FadeInComponent, markdownTheme } from "../../theme";
@@ -45,6 +45,114 @@ import ReactMarkdown from "react-markdown";
 const analysisModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
+
+// --- Wave-style progress bar (same spec as CloudTransition) ---
+const clampPct = (n) => Math.max(0, Math.min(100, Number(n) || 0));
+const MotionG = motion.g;
+
+const WaveBar = ({
+  value,
+  height = 30,
+  start = "#6a11cb",
+  end = "#72a2f2",
+  delay = 0.1,
+  bg = "rgba(255,255,255,0.65)",
+  border = "#ededed",
+}) => {
+  const gradId = React.useRef(
+    `grad-${Math.random().toString(36).slice(2, 9)}`
+  ).current;
+  const widthPct = `${clampPct(value)}%`;
+  return (
+    <Box
+      role="progressbar"
+      aria-valuenow={clampPct(value)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      position="relative"
+      bg={bg}
+      borderRadius="9999px"
+      overflow="hidden"
+      height={`${height}px`}
+      border={`1px solid ${border}`}
+      backdropFilter="saturate(120%) blur(4px)"
+    >
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: widthPct }}
+        transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
+        style={{ position: "absolute", top: 0, left: 0, bottom: 0 }}
+      >
+        <Box
+          as="svg"
+          viewBox="0 0 120 30"
+          preserveAspectRatio="none"
+          width="100%"
+          height="100%"
+          display="block"
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={start} />
+              <stop offset="100%" stopColor={end} />
+            </linearGradient>
+          </defs>
+
+          {/* Fill */}
+          <rect
+            width="120"
+            height="30"
+            fill={`url(#${gradId})`}
+            opacity="0.9"
+          />
+
+          {/* Two drifting wave layers */}
+          <MotionG
+            initial={{ x: 0 }}
+            animate={{ x: [-10, 0, -10] }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay,
+            }}
+            opacity={0.18}
+          >
+            <path
+              d="M0,18 C10,14 20,22 30,18 S50,14 60,18 S80,22 90,18 S110,14 120,18 L120,30 L0,30 Z"
+              fill="#fff"
+            />
+          </MotionG>
+          <MotionG
+            initial={{ x: 0 }}
+            animate={{ x: [10, 0, 10] }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: delay + 0.2,
+            }}
+            opacity={0.12}
+          >
+            <path
+              d="M0,16 C12,12 22,20 32,16 S52,12 62,16 S82,20 92,16 S112,12 122,16 L122,30 L0,30 Z"
+              fill="#fff"
+            />
+          </MotionG>
+
+          {/* Gloss line */}
+          <rect
+            y="0"
+            width="120"
+            height="2"
+            fill="rgba(255,255,255,0.45)"
+            rx="1"
+          />
+        </Box>
+      </motion.div>
+    </Box>
+  );
+};
 
 export const NewAssistant = () => {
   const [userDoc, setUserDoc] = useState(null);
@@ -500,7 +608,17 @@ export const NewAssistant = () => {
             {listCreated && (
               <>
                 <Text textAlign="center">{timeString}</Text>
-                <Progress value={progress} max={100} mt={2} />
+                <Box mt={2}>
+                  <WaveBar
+                    value={progress}
+                    start="#43e97b"
+                    end="#38f9d7"
+                    delay={0.1}
+                    height={24}
+                    bg="rgba(255,255,255,0.65)"
+                    border="#ededed"
+                  />
+                </Box>
               </>
             )}
 
