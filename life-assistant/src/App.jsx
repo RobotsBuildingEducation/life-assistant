@@ -26,7 +26,7 @@ import {
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
-import { FiGlobe, FiDownload, FiBell } from "react-icons/fi";
+import { FiGlobe, FiDownload, FiBell, FiShield } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
 import { IoShareOutline } from "react-icons/io5";
@@ -73,6 +73,12 @@ function App() {
   const toast = useToast();
 
   // Disclosure hooks for Network and Install modals
+  const {
+    isOpen: isPrivacyOpen,
+    onOpen: onPrivacyOpen,
+    onClose: onPrivacyClose,
+  } = useDisclosure(); // NEW
+
   const {
     isOpen: isNetworkOpen,
     onOpen: onNetworkOpen,
@@ -284,6 +290,11 @@ function App() {
       {showHeader && (
         <Box p={4}>
           <HStack spacing={3} justify="flex-end">
+            <IconButton
+              aria-label="Privacy"
+              icon={<FiShield />}
+              onClick={onPrivacyOpen}
+            />{" "}
             {/* <ColorModeSwitcher /> */}
             <IconButton
               aria-label="Themes"
@@ -300,19 +311,16 @@ function App() {
               icon={<FiDownload />}
               onClick={onInstallOpen}
             />
-
             <IconButton
               aria-label="Notifications"
               icon={<FiBell />}
               onClick={onNotificationsOpen}
             />
-
             {/* <IconButton
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
               onClick={handleSendTestNotification}
             /> */}
-
             <IconButton
               aria-label="Sign out"
               icon={<GiExitDoor />}
@@ -536,6 +544,26 @@ function App() {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onThemeClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isPrivacyOpen} onClose={onPrivacyClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Privacy</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              we save the data you input to make AI responses better and more
+              personalized. Your identity is private so we can't tell what
+              anybody is.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" onMouseDown={onPrivacyClose}>
               Close
             </Button>
           </ModalFooter>
