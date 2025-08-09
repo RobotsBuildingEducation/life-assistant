@@ -43,6 +43,7 @@ import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc } from "firebase/firestore";
 import { getToken, deleteToken } from "firebase/messaging";
+import { isUnsupportedBrowser } from "./utils/browser";
 
 const ActionButton = ({ href, text }) => (
   <Button
@@ -306,11 +307,11 @@ function App() {
               onClick={onNotificationsOpen}
             />
 
-            <IconButton
+            {/* <IconButton
               aria-label="Test notification"
               icon={<LuBadgeCheck />}
               onClick={handleSendTestNotification}
-            />
+            /> */}
 
             <IconButton
               aria-label="Sign out"
@@ -340,8 +341,15 @@ function App() {
                 id="notifications-toggle"
                 isChecked={notificationsEnabled}
                 onChange={(e) => handleNotificationToggle(e.target.checked)}
+                isDisabled={isUnsupportedBrowser()}
               />
             </FormControl>
+            {isUnsupportedBrowser() ? (
+              <Text mt={4}>
+                The in-app browser you're using doesn't allow device
+                notifications. Install the app to unlock this feature.
+              </Text>
+            ) : null}
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onNotificationsClose}>
