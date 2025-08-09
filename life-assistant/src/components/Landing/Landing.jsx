@@ -87,7 +87,7 @@ export const Landing = () => {
             <RoleCanvas role={role} width={200} height={200} color="#feeabd" />
           </div>
           <Heading as="h2" size="lg" textAlign="center" p={0} m={0}>
-            16 Hours
+            16Hours
           </Heading>
           <Text textAlign="center" p={0} m={"-6"} mb={4}>
             Lock In & Focus On Your Goals

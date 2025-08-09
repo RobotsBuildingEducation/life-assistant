@@ -558,7 +558,7 @@ function App() {
           <ModalBody>
             <Text>
               we save the data you input to make AI responses better and more
-              personalized. Your identity is private so we can't tell what
+              personalized. Your identity is private so we can't tell who
               anybody is.
             </Text>
           </ModalBody>
