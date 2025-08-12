@@ -409,13 +409,25 @@ export const NewAssistant = () => {
       setTimeString(`${hours} hours ${minutes} minutes ${seconds} seconds`);
       if (remaining <= 0 && listCreated && !timerExpired) {
         setTimerExpired(true);
-        finishList(completed);
+        if (memoryId) {
+          finishList(completed);
+        } else {
+          startNewList();
+        }
       }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [startTime, completed, listCreated, finishList, memoryId, timerExpired]);
+  }, [
+    startTime,
+    completed,
+    listCreated,
+    finishList,
+    memoryId,
+    timerExpired,
+    startNewList,
+  ]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
