@@ -247,7 +247,7 @@ function App() {
     }
   };
 
-  const handleSendTestNotification = async () => {
+  const HandleSendTestNotification = async () => {
     try {
       const token = await getToken(messaging, {
         vapidKey:

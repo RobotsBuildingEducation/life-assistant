@@ -176,6 +176,7 @@ export const NewAssistant = () => {
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
+  const [timerExpired, setTimerExpired] = useState(false);
 
   const normalizeTask = (t) => (typeof t === "string" ? t : t.text || "");
 
@@ -190,6 +191,7 @@ export const NewAssistant = () => {
     setListKey((k) => k + 1);
     setTaskInput("");
     setStatusText("");
+    setTimerExpired(false);
     localStorage.removeItem("draft_tasks");
     localStorage.removeItem("draft_status");
   }, []);
@@ -405,14 +407,15 @@ export const NewAssistant = () => {
       const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
       const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
       setTimeString(`${hours} hours ${minutes} minutes ${seconds} seconds`);
-      if (remaining <= 0 && listCreated) {
+      if (remaining <= 0 && listCreated && !timerExpired) {
+        setTimerExpired(true);
         finishList(completed);
       }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [startTime, completed, listCreated, finishList, memoryId]);
+  }, [startTime, completed, listCreated, finishList, memoryId, timerExpired]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
