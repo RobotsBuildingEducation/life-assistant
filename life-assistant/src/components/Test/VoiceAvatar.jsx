@@ -1,33 +1,73 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
   Center,
   HStack,
   Input,
+  Select,
   Switch,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
   Text,
   VStack,
+  useToast,
 } from '@chakra-ui/react';
 
-// Optional Firebase init helper. It is safe to call even if the app
-// has already been initialised elsewhere.
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
 
-  const MAYBE_INIT_FIREBASE = () => {
-    try {
-      if (!getApps().length) {
-        const firebaseConfig = window.__FIREBASE_CONFIG__ || null;
-        if (!firebaseConfig) return null;
-        return initializeApp(firebaseConfig);
-      }
-      return getApp();
-    } catch {
-      return null;
+// Optional Firebase init helper. Safe to call even if app already initialised.
+const MAYBE_INIT_FIREBASE = () => {
+  try {
+    if (!getApps().length) {
+      const firebaseConfig = window.__FIREBASE_CONFIG__ || null;
+      if (!firebaseConfig) return null;
+      return initializeApp(firebaseConfig);
     }
-  };
+    return getApp();
+  } catch {
+    return null;
+  }
+};
 
-// A very small animated avatar that opens its mouth while "speaking".
+// Helpers to handle audio returned from Gemini TTS
+function b64ToUint8(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function pcm16ToWav(pcm, sampleRate = 24000, channels = 1) {
+  const blockAlign = channels * 2;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = pcm.byteLength;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const writeStr = (o, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i));
+  };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+  new Uint8Array(buffer, 44).set(pcm);
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+// Simple animated avatar
 function AvatarFace({ talking }) {
   return (
     <Box
@@ -56,61 +96,169 @@ function AvatarFace({ talking }) {
 }
 
 export default function VoiceAvatar() {
-  MAYBE_INIT_FIREBASE();
-  const [text, setText] = useState('');
-  const [useWebSpeech, setUseWebSpeech] = useState(true);
-  const [talking, setTalking] = useState(false);
-  const audioCtxRef = useRef(null);
+  const toast = useToast();
+  const app = MAYBE_INIT_FIREBASE();
+  const ai = useMemo(
+    () => (app ? getAI(app, { backend: new GoogleAIBackend() }) : null),
+    [app]
+  );
+  const ttsModel = useMemo(
+    () => (ai ? getGenerativeModel(ai, { model: 'gemini-2.5-flash-preview-tts' }) : null),
+    [ai]
+  );
 
-  const speak = (phrase) => {
-    if (useWebSpeech && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(phrase);
-      utterance.onstart = () => setTalking(true);
-      utterance.onend = () => setTalking(false);
-      speechSynthesis.speak(utterance);
-    } else {
-      // Fallback: simple beep so the avatar animation can be tested
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtxRef.current = ctx;
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = 440;
-      osc.connect(ctx.destination);
-      osc.start();
+  const [text, setText] = useState('');
+  const [talking, setTalking] = useState(false);
+  const [useWebSpeech, setUseWebSpeech] = useState(true);
+
+  // Web Speech settings
+  const [wsVoices, setWsVoices] = useState([]);
+  const [wsVoice, setWsVoice] = useState('');
+  const [wsRate, setWsRate] = useState(1);
+  const [wsPitch, setWsPitch] = useState(1);
+
+  // Gemini TTS settings
+  const [gemVoice, setGemVoice] = useState('Puck');
+  const [gemStyle, setGemStyle] = useState('');
+
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      const loadVoices = () => {
+        const v = window.speechSynthesis.getVoices();
+        setWsVoices(v);
+        setWsVoice((prev) => prev || (v[0] && v[0].name) || '');
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  const speakWithWebSpeech = (phrase) => {
+    const utter = new SpeechSynthesisUtterance(phrase);
+    const voice = wsVoices.find((v) => v.name === wsVoice);
+    if (voice) utter.voice = voice;
+    utter.rate = wsRate;
+    utter.pitch = wsPitch;
+    utter.onstart = () => setTalking(true);
+    utter.onend = () => setTalking(false);
+    window.speechSynthesis.speak(utter);
+  };
+
+  const speakWithGemini = async (phrase) => {
+    if (!ttsModel) {
+      toast({ title: 'Firebase not initialised', status: 'error' });
+      return;
+    }
+    try {
       setTalking(true);
-      setTimeout(() => {
-        osc.stop();
-        ctx.close();
+      const res = await ttsModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: phrase }] }],
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: gemVoice },
+          },
+          style: gemStyle || undefined,
+        },
+        audioConfig: { audioEncoding: 'LINEAR16', sampleRateHertz: 24000 },
+      });
+      const audioB64 = res.response?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (audioB64) {
+        const pcm = b64ToUint8(audioB64);
+        const wav = pcm16ToWav(pcm);
+        const url = URL.createObjectURL(wav);
+        const audio = new Audio(url);
+        audio.onended = () => {
+          setTalking(false);
+          URL.revokeObjectURL(url);
+        };
+        await audio.play();
+      } else {
         setTalking(false);
-      }, 500);
+        toast({ title: 'No audio returned', status: 'error' });
+      }
+    } catch (e) {
+      console.error(e);
+      setTalking(false);
+      toast({ title: 'TTS failed', status: 'error' });
     }
   };
 
   const handleEcho = () => {
-    if (text.trim()) {
-      speak(text.trim());
+    const phrase = text.trim();
+    if (!phrase) return;
+    if (useWebSpeech && 'speechSynthesis' in window) {
+      speakWithWebSpeech(phrase);
+    } else {
+      speakWithGemini(phrase);
     }
   };
 
   return (
     <Center minH="100vh">
-      <VStack spacing={6}>
+      <VStack spacing={6} w="full" maxW="md">
         <AvatarFace talking={talking} />
-        <HStack>
+        <HStack w="full">
           <Input
             placeholder="Type something"
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <Button onClick={handleEcho}>Echo</Button>
+          <Button onClick={handleEcho}>Send</Button>
         </HStack>
+
         <HStack>
-          <Text>Web Speech fallback</Text>
+          <Text>Use Web Speech</Text>
           <Switch
             isChecked={useWebSpeech}
             onChange={(e) => setUseWebSpeech(e.target.checked)}
           />
         </HStack>
+
+        {useWebSpeech ? (
+          <VStack w="full" align="stretch" spacing={4}>
+            <Select value={wsVoice} onChange={(e) => setWsVoice(e.target.value)}>
+              {wsVoices.map((v) => (
+                <option key={v.name} value={v.name}>
+                  {v.name}
+                </option>
+              ))}
+            </Select>
+            <Box>
+              <Text mb={2}>Rate: {wsRate.toFixed(1)}</Text>
+              <Slider min={0.5} max={2} step={0.1} value={wsRate} onChange={setWsRate}>
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </Box>
+            <Box>
+              <Text mb={2}>Pitch: {wsPitch.toFixed(1)}</Text>
+              <Slider min={0} max={2} step={0.1} value={wsPitch} onChange={setWsPitch}>
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </Box>
+          </VStack>
+        ) : (
+          <VStack w="full" align="stretch" spacing={4}>
+            <Select value={gemVoice} onChange={(e) => setGemVoice(e.target.value)}>
+              <option value="Kore">Kore</option>
+              <option value="Puck">Puck</option>
+              <option value="Zephyr">Zephyr</option>
+              <option value="Charon">Charon</option>
+              <option value="Enceladus">Enceladus</option>
+            </Select>
+            <Input
+              placeholder="Style hint (optional)"
+              value={gemStyle}
+              onChange={(e) => setGemStyle(e.target.value)}
+            />
+          </VStack>
+        )}
       </VStack>
     </Center>
   );
