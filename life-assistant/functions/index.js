@@ -3,6 +3,13 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const fireFunctions = require("firebase-functions/v1");
+const { onRequest } = require("firebase-functions/v2/https");
+const { GoogleGenerativeAI } = require("@google/genai");
+const textToSpeech = require("@google-cloud/text-to-speech");
+
+const GENAI_MODEL = "gemini-2.5-flash";
+const ai = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY });
+const ttsClient = new textToSpeech.TextToSpeechClient();
 
 admin.initializeApp();
 
@@ -112,3 +119,46 @@ exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
     res.status(500).send("Error sending test notification.");
   }
 });
+
+exports.voiceTurn = onRequest({ cors: true, maxInstances: 10 }, async (req, res) => {
+  try {
+    if (req.method !== "POST") return res.status(405).send("POST only");
+    const { audioBase64, mimeType = "audio/webm" } = req.body || {};
+    if (!audioBase64) return res.status(400).json({ error: "audioBase64 required" });
+
+    const contents = [
+      {
+        role: "user",
+        parts: [
+          { text: "Transcribe the speech, then reply as a friendly, concise tutor." },
+          { inlineData: { data: audioBase64, mimeType } },
+        ],
+      },
+    ];
+
+    const gen = await ai.models.generateContent({
+      model: GENAI_MODEL,
+      contents,
+    });
+
+    const aiText = gen?.response?.text()?.trim() || "";
+    const [ttsResp] = await ttsClient.synthesizeSpeech({
+      input: { text: aiText || "..." },
+      voice: { languageCode: "en-US", name: "en-US-Neural2-J" },
+      audioConfig: { audioEncoding: "MP3", speakingRate: 1.0 },
+    });
+
+    const audioReplyBase64 = Buffer.from(ttsResp.audioContent).toString("base64");
+
+    res.json({
+      userText: "(transcribed speech)",
+      aiText,
+      audioBase64: audioReplyBase64,
+      audioMimeType: "audio/mpeg",
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+

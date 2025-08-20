@@ -39,6 +39,7 @@ import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
+import VoiceTutor from "./components/Experiments/VoiceTutor";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc } from "firebase/firestore";
@@ -244,20 +245,6 @@ function App() {
       } catch (error) {
         console.error("Error deleting FCM token:", error);
       }
-    }
-  };
-
-  const handleSendTestNotification = async () => {
-    try {
-      const token = await getToken(messaging, {
-        vapidKey:
-          "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-      });
-      await fetch(
-        `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
-      );
-    } catch (err) {
-      console.error("Test notification failed", err);
     }
   };
 
@@ -574,6 +561,7 @@ function App() {
         <Route path="/login" element={<Landing />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/assistant" element={<NewAssistant />} />
+        <Route path="/experiments" element={<VoiceTutor />} />
         <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
     </>
