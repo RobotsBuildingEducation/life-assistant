@@ -34,7 +34,7 @@ import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
-import { getUser, updateUser } from "./firebaseResources/store";
+import { updateUser } from "./firebaseResources/store";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
@@ -107,6 +107,7 @@ function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // Redirect based on user record (onboarding vs. assistant)
+  /*
   useEffect(() => {
     const retrieveUser = async (npub) => {
       try {
@@ -152,6 +153,7 @@ function App() {
       navigate("/login");
     }
   }, [navigate]);
+  */
 
   useEffect(() => {
     const saved = localStorage.getItem("theme_color");

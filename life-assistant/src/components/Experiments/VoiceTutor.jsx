@@ -91,6 +91,30 @@ export default function VoiceTutor() {
     }
   };
 
+  const sendTest = async () => {
+    const sampleRate = 24000;
+    const samples = sampleRate;
+    const pcm = new Uint8Array(samples * 2);
+    const wavBlob = pcm16ToWav(pcm, sampleRate, 1);
+    const base64 = await blobToBase64(wavBlob);
+    const resp = await fetch(import.meta.env.VITE_FUNCTION_URL || "/voiceTurn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioBase64: base64, mimeType: "audio/wav" }),
+    });
+    const data = await resp.json();
+    setAiText(data.aiText);
+    if (audioRef.current) {
+      const audioUrl = `data:${data.audioMimeType};base64,${data.audioBase64}`;
+      audioRef.current.src = audioUrl;
+      try {
+        await audioRef.current.play();
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   return (
     <div style={{ display: "grid", placeItems: "center", minHeight: "100dvh", gap: 16 }}>
       <div style={{ display: "grid", placeItems: "center", gap: 8 }}>
@@ -155,6 +179,9 @@ export default function VoiceTutor() {
         )}
       </div>
       <audio ref={audioRef} playsInline />
+      <button onClick={sendTest} style={{ marginTop: 12, padding: "8px 12px", borderRadius: 8 }}>
+        Send test audio
+      </button>
     </div>
   );
 }
@@ -164,5 +191,33 @@ async function blobToBase64(blob) {
   let binary = "";
   arr.forEach((b) => (binary += String.fromCharCode(b)));
   return btoa(binary);
+}
+
+function pcm16ToWav(pcm, sampleRate = 24000, channels = 1) {
+  const blockAlign = channels * 2;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = pcm.byteLength;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeStr = (o, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i));
+  };
+
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, dataSize, true);
+  new Uint8Array(buffer, 44).set(pcm);
+  return new Blob([buffer], { type: "audio/wav" });
 }
 
