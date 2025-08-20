@@ -40,6 +40,7 @@ import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import VoiceTutor from "./components/Experiments/VoiceTutor";
+import VoiceAvatar from "./components/Test/VoiceAvatar";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc } from "firebase/firestore";
@@ -564,6 +565,7 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/assistant" element={<NewAssistant />} />
         <Route path="/experiments" element={<VoiceTutor />} />
+        <Route path="/test" element={<VoiceAvatar />} />
         <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
     </>
