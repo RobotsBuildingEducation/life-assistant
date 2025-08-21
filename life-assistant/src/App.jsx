@@ -34,11 +34,13 @@ import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
-import { getUser, updateUser } from "./firebaseResources/store";
+import { updateUser } from "./firebaseResources/store";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
+import VoiceTutor from "./components/Experiments/VoiceTutor";
+import VoiceAvatar from "./components/Test/VoiceAvatar";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc } from "firebase/firestore";
@@ -106,6 +108,7 @@ function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // Redirect based on user record (onboarding vs. assistant)
+  /*
   useEffect(() => {
     const retrieveUser = async (npub) => {
       try {
@@ -151,6 +154,7 @@ function App() {
       navigate("/login");
     }
   }, [navigate]);
+  */
 
   useEffect(() => {
     const saved = localStorage.getItem("theme_color");
@@ -244,20 +248,6 @@ function App() {
       } catch (error) {
         console.error("Error deleting FCM token:", error);
       }
-    }
-  };
-
-  const handleSendTestNotification = async () => {
-    try {
-      const token = await getToken(messaging, {
-        vapidKey:
-          "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-      });
-      await fetch(
-        `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
-      );
-    } catch (err) {
-      console.error("Test notification failed", err);
     }
   };
 
@@ -574,6 +564,8 @@ function App() {
         <Route path="/login" element={<Landing />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/assistant" element={<NewAssistant />} />
+        <Route path="/experiments" element={<VoiceTutor />} />
+        <Route path="/test" element={<VoiceAvatar />} />
         <Route path="/archived/assistant" element={<Assistant />} />
       </Routes>
     </>
