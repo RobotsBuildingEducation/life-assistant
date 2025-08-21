@@ -3,6 +3,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, isSupported } from "firebase/messaging";
 import { getVertexAI, Schema } from "@firebase/vertexai";
+import { getAI, GoogleAIBackend } from "firebase/ai";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_PUBLIC_API_KEY,
@@ -19,6 +20,7 @@ export const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);
 const analytics = getAnalytics(app);
 const vertexAI = getVertexAI(app);
+const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 let messaging = null;
 async function initMessaging() {
@@ -35,4 +37,4 @@ initMessaging();
 
 // 3) Pass that into your model’s generationConfig:
 
-export { database, analytics, vertexAI, messaging, Schema };
+export { database, analytics, vertexAI, ai, messaging, Schema };

@@ -16,8 +16,8 @@ import {
   useToast,
 } from '@chakra-ui/react';
 
-import { vertexAI } from '../../firebaseResources/config';
-import { getGenerativeModel } from '@firebase/vertexai';
+import { ai } from '../../firebaseResources/config';
+import { getGenerativeModel } from 'firebase/ai';
 
 // Helpers to handle audio returned from Gemini TTS
 function b64ToUint8(b64) {
@@ -53,7 +53,7 @@ function pcm16ToWav(pcm, sampleRate = 24000, channels = 1) {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
-const ttsModel = getGenerativeModel(vertexAI, {
+const ttsModel = getGenerativeModel(ai, {
   model: 'gemini-2.5-flash-preview-tts',
 });
 
