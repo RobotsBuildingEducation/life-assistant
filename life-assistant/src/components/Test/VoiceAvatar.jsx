@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -16,22 +16,8 @@ import {
   useToast,
 } from '@chakra-ui/react';
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
-
-// Optional Firebase init helper. Safe to call even if app already initialised.
-const MAYBE_INIT_FIREBASE = () => {
-  try {
-    if (!getApps().length) {
-      const firebaseConfig = window.__FIREBASE_CONFIG__ || null;
-      if (!firebaseConfig) return null;
-      return initializeApp(firebaseConfig);
-    }
-    return getApp();
-  } catch {
-    return null;
-  }
-};
+import { vertexAI } from '../../firebaseResources/config';
+import { getGenerativeModel } from '@firebase/vertexai';
 
 // Helpers to handle audio returned from Gemini TTS
 function b64ToUint8(b64) {
@@ -67,6 +53,10 @@ function pcm16ToWav(pcm, sampleRate = 24000, channels = 1) {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
+const ttsModel = getGenerativeModel(vertexAI, {
+  model: 'gemini-2.5-flash-preview-tts',
+});
+
 // Simple animated avatar
 function AvatarFace({ talking }) {
   return (
@@ -97,15 +87,6 @@ function AvatarFace({ talking }) {
 
 export default function VoiceAvatar() {
   const toast = useToast();
-  const app = MAYBE_INIT_FIREBASE();
-  const ai = useMemo(
-    () => (app ? getAI(app, { backend: new GoogleAIBackend() }) : null),
-    [app]
-  );
-  const ttsModel = useMemo(
-    () => (ai ? getGenerativeModel(ai, { model: 'gemini-2.5-flash-preview-tts' }) : null),
-    [ai]
-  );
 
   const [text, setText] = useState('');
   const [talking, setTalking] = useState(false);
@@ -145,10 +126,6 @@ export default function VoiceAvatar() {
   };
 
   const speakWithGemini = async (phrase) => {
-    if (!ttsModel) {
-      toast({ title: 'Firebase not initialised', status: 'error' });
-      return;
-    }
     try {
       setTalking(true);
       const res = await ttsModel.generateContent({
