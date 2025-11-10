@@ -31,6 +31,12 @@ import {
   DrawerCloseButton,
   DrawerHeader,
   DrawerBody,
+  FormHelperText,
+  Wrap,
+  WrapItem,
+  Tag,
+  TagLabel,
+  TagCloseButton,
 } from "@chakra-ui/react";
 import { FiDownload, FiBell, FiShield, FiCopy, FiKey } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
@@ -40,7 +46,16 @@ import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
 
-import { getUser, updateUser } from "./firebaseResources/store";
+import {
+  getUser,
+  updateUser,
+  listenToUserTeams,
+  createTeam,
+  acceptTeamInvite,
+  declineTeamInvite,
+  leaveTeam,
+  getTeamDetails,
+} from "./firebaseResources/store";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
@@ -84,11 +99,28 @@ function App() {
   } = useDisclosure();
   const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } =
     useDisclosure();
+  const {
+    isOpen: isCreateTeamOpen,
+    onOpen: onCreateTeamOpen,
+    onClose: onCreateTeamClose,
+  } = useDisclosure();
+  const {
+    isOpen: isViewTeamsOpen,
+    onOpen: onViewTeamsOpen,
+    onClose: onViewTeamsClose,
+  } = useDisclosure();
 
   const [selectedFont, setSelectedFont] = useState(
     localStorage.getItem("theme_font") || "'Inter', sans-serif"
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [inviteInput, setInviteInput] = useState("");
+  const [invitees, setInvitees] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [teamActionLoading, setTeamActionLoading] = useState({});
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [teamDetails, setTeamDetails] = useState({});
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
@@ -265,10 +297,294 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const npub = localStorage.getItem("local_npub");
+    if (!npub) {
+      return undefined;
+    }
+
+    const unsubscribe = listenToUserTeams(npub, (snapshot) => {
+      const memberships = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTeams(memberships);
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isViewTeamsOpen) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    const loadTeamDetails = async () => {
+      try {
+        const ids = Array.from(
+          new Set(teams.map((team) => team.teamId).filter(Boolean))
+        );
+        const entries = await Promise.all(
+          ids.map(async (teamId) => {
+            const detail = await getTeamDetails(teamId);
+            return [teamId, detail];
+          })
+        );
+
+        if (isActive) {
+          const mappedDetails = {};
+          entries.forEach(([teamId, detail]) => {
+            if (detail) {
+              mappedDetails[teamId] = detail;
+            }
+          });
+          setTeamDetails(mappedDetails);
+        }
+      } catch (error) {
+        console.error("Failed to fetch team details:", error);
+      }
+    };
+
+    loadTeamDetails();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isViewTeamsOpen, teams]);
+
+  const handleOpenCreateTeam = () => {
+    setTeamName("");
+    setInviteInput("");
+    setInvitees([]);
+    onCreateTeamOpen();
+  };
+
+  const handleCloseCreateTeam = () => {
+    setTeamName("");
+    setInviteInput("");
+    setInvitees([]);
+    onCreateTeamClose();
+  };
+
+  const handleAddInvitee = () => {
+    const trimmed = inviteInput.trim();
+    if (!trimmed) {
+      toast({
+        title: "Enter an npub to invite.",
+        status: "info",
+        duration: 2000,
+      });
+      return;
+    }
+
+    if (invitees.includes(trimmed)) {
+      toast({
+        title: "You've already added that teammate.",
+        status: "warning",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const currentNpub = localStorage.getItem("local_npub");
+    if (currentNpub && currentNpub === trimmed) {
+      toast({
+        title: "You’re already on the team.",
+        status: "warning",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setInvitees((prev) => [...prev, trimmed]);
+    setInviteInput("");
+  };
+
+  const handleRemoveInvitee = (value) => {
+    setInvitees((prev) => prev.filter((invite) => invite !== value));
+  };
+
+  const handleCreateTeam = async () => {
+    const ownerNpub = localStorage.getItem("local_npub");
+    if (!ownerNpub) {
+      toast({
+        title: "You need to be signed in to create a team.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const trimmedName = teamName.trim();
+    if (!trimmedName) {
+      toast({
+        title: "Team name cannot be empty.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const ownsTeamWithName = teams.some(
+      (team) =>
+        team.role === "owner" &&
+        team.name &&
+        team.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (ownsTeamWithName) {
+      toast({
+        title: "You already have a team with that name.",
+        status: "warning",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setIsCreatingTeam(true);
+    try {
+      await createTeam(ownerNpub, trimmedName, invitees);
+      toast({
+        title: "Team created.",
+        status: "success",
+        duration: 2000,
+      });
+      handleCloseCreateTeam();
+    } catch (error) {
+      console.error("Failed to create team:", error);
+      toast({
+        title: "Unable to create team.",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setIsCreatingTeam(false);
+    }
+  };
+
+  const setTeamLoading = (teamId, value) => {
+    setTeamActionLoading((prev) => {
+      const next = { ...prev };
+      if (value) {
+        next[teamId] = true;
+      } else {
+        delete next[teamId];
+      }
+      return next;
+    });
+  };
+
+  const handleAcceptInvite = async (teamId) => {
+    const npub = localStorage.getItem("local_npub");
+    if (!npub) {
+      toast({
+        title: "You need to be signed in to accept invites.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setTeamLoading(teamId, true);
+    try {
+      await acceptTeamInvite(npub, teamId);
+      toast({
+        title: "Joined team.",
+        status: "success",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to accept invite:", error);
+      toast({
+        title: "Unable to accept invite.",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setTeamLoading(teamId, false);
+    }
+  };
+
+  const handleDeclineInvite = async (teamId) => {
+    const npub = localStorage.getItem("local_npub");
+    if (!npub) {
+      toast({
+        title: "You need to be signed in to decline invites.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setTeamLoading(teamId, true);
+    try {
+      await declineTeamInvite(npub, teamId);
+      toast({
+        title: "Invite declined.",
+        status: "info",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to decline invite:", error);
+      toast({
+        title: "Unable to decline invite.",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setTeamLoading(teamId, false);
+    }
+  };
+
+  const handleLeaveTeam = async (teamId) => {
+    const npub = localStorage.getItem("local_npub");
+    if (!npub) {
+      toast({
+        title: "You need to be signed in to leave a team.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setTeamLoading(teamId, true);
+    try {
+      await leaveTeam(npub, teamId);
+      toast({
+        title: "Left team.",
+        status: "success",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to leave team:", error);
+      toast({
+        title: "Unable to leave team.",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setTeamLoading(teamId, false);
+    }
+  };
+
   // Only show the header (icons) on assistant or archived assistant routes
   const showHeader = ["/assistant", "/archived/assistant"].some((path) =>
     location.pathname.startsWith(path)
   );
+
+  const pendingInvites = teams.filter((team) => team.status === "invited");
+  const activeTeams = teams.filter((team) => team.status === "active");
+  const hasPendingInvites = pendingInvites.length > 0;
 
   return (
     <>
@@ -281,6 +597,34 @@ function App() {
             variant="ghost"
             size="lg"
           />
+        </Box>
+      )}
+
+      {showHeader && (
+        <Box
+          position="fixed"
+          bottom={0}
+          left={0}
+          right={0}
+          bg="white"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={3}
+          px={4}
+          zIndex={1300}
+        >
+          <HStack spacing={3} justify="center">
+            <Button colorScheme="purple" onClick={handleOpenCreateTeam}>
+              Create team
+            </Button>
+            <Button
+              variant={hasPendingInvites ? "solid" : "outline"}
+              colorScheme={hasPendingInvites ? "pink" : "gray"}
+              onClick={onViewTeamsOpen}
+            >
+              View team
+            </Button>
+          </HStack>
         </Box>
       )}
 
@@ -369,6 +713,204 @@ function App() {
               >
                 Sign out
               </Button>
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer
+        placement="bottom"
+        isOpen={isCreateTeamOpen}
+        onClose={handleCloseCreateTeam}
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent borderTopRadius="xl">
+          <DrawerCloseButton />
+          <DrawerHeader>Create a team</DrawerHeader>
+          <DrawerBody>
+            <VStack align="stretch" spacing={4} pb={6}>
+              <FormControl>
+                <FormLabel>Team name</FormLabel>
+                <Input
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Enter a team name"
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Invite teammates (npub)</FormLabel>
+                <HStack>
+                  <Input
+                    value={inviteInput}
+                    onChange={(e) => setInviteInput(e.target.value)}
+                    placeholder="npub..."
+                  />
+                  <Button onClick={handleAddInvitee}>Add</Button>
+                </HStack>
+                <FormHelperText>
+                  Add teammates by their npub identifiers.
+                </FormHelperText>
+              </FormControl>
+              {invitees.length > 0 && (
+                <Wrap>
+                  {invitees.map((invite) => (
+                    <WrapItem key={invite}>
+                      <Tag borderRadius="full" colorScheme="purple">
+                        <TagLabel>{invite}</TagLabel>
+                        <TagCloseButton
+                          aria-label={`Remove ${invite}`}
+                          onClick={() => handleRemoveInvitee(invite)}
+                        />
+                      </Tag>
+                    </WrapItem>
+                  ))}
+                </Wrap>
+              )}
+              <Button
+                colorScheme="purple"
+                onClick={handleCreateTeam}
+                isLoading={isCreatingTeam}
+                isDisabled={!teamName.trim()}
+              >
+                Create team
+              </Button>
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer
+        placement="bottom"
+        isOpen={isViewTeamsOpen}
+        onClose={onViewTeamsClose}
+        size="lg"
+      >
+        <DrawerOverlay />
+        <DrawerContent borderTopRadius="xl">
+          <DrawerCloseButton />
+          <DrawerHeader>Teams</DrawerHeader>
+          <DrawerBody>
+            <VStack align="stretch" spacing={6} pb={6}>
+              {pendingInvites.length > 0 && (
+                <Box>
+                  <Text fontWeight="bold" mb={2}>
+                    Pending invites
+                  </Text>
+                  <VStack align="stretch" spacing={3}>
+                    {pendingInvites.map((team) => (
+                      <Box
+                        key={team.id}
+                        borderWidth="1px"
+                        borderRadius="md"
+                        p={3}
+                      >
+                        <Text fontWeight="semibold">{team.name}</Text>
+                        <Text fontSize="sm" color="gray.500">
+                          Invited by {team.owner}
+                        </Text>
+                        <HStack mt={3} spacing={2}>
+                          <Button
+                            size="sm"
+                            colorScheme="green"
+                            onClick={() => handleAcceptInvite(team.teamId)}
+                            isLoading={!!teamActionLoading[team.teamId]}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeclineInvite(team.teamId)}
+                            isLoading={!!teamActionLoading[team.teamId]}
+                          >
+                            Decline
+                          </Button>
+                        </HStack>
+                      </Box>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
+
+              <Box>
+                <Text fontWeight="bold" mb={2}>
+                  Your teams
+                </Text>
+                {activeTeams.length === 0 ? (
+                  <Text color="gray.500">No active teams yet.</Text>
+                ) : (
+                  <VStack align="stretch" spacing={3}>
+                    {activeTeams.map((team) => {
+                      const detail = teamDetails[team.teamId] || {};
+                      const members = detail.members || [];
+                      const pending = detail.invites || [];
+                      return (
+                        <Box
+                          key={team.id}
+                          borderWidth="1px"
+                          borderRadius="md"
+                          p={3}
+                        >
+                          <Text fontWeight="semibold">{team.name}</Text>
+                          <Text fontSize="sm" color="gray.500">
+                            Owner: {team.owner}
+                          </Text>
+                          {members.length > 0 && (
+                            <Box mt={2}>
+                              <Text fontSize="sm" fontWeight="medium">
+                                Members
+                              </Text>
+                              <Wrap mt={1} spacing={2}>
+                                {members.map((member) => (
+                                  <WrapItem key={member}>
+                                    <Tag size="sm" borderRadius="full">
+                                      <TagLabel>{member}</TagLabel>
+                                    </Tag>
+                                  </WrapItem>
+                                ))}
+                              </Wrap>
+                            </Box>
+                          )}
+                          {pending.length > 0 && (
+                            <Box mt={2}>
+                              <Text fontSize="sm" fontWeight="medium">
+                                Pending invites
+                              </Text>
+                              <Wrap mt={1} spacing={2}>
+                                {pending.map((invite) => (
+                                  <WrapItem key={invite}>
+                                    <Tag
+                                      size="sm"
+                                      borderRadius="full"
+                                      colorScheme="yellow"
+                                    >
+                                      <TagLabel>{invite}</TagLabel>
+                                    </Tag>
+                                  </WrapItem>
+                                ))}
+                              </Wrap>
+                            </Box>
+                          )}
+                          <Button
+                            size="sm"
+                            mt={3}
+                            variant="outline"
+                            colorScheme="red"
+                            onClick={() => handleLeaveTeam(team.teamId)}
+                            isDisabled={team.role === "owner"}
+                            isLoading={!!teamActionLoading[team.teamId]}
+                          >
+                            {team.role === "owner"
+                              ? "Transfer ownership to leave"
+                              : "Leave team"}
+                          </Button>
+                        </Box>
+                      );
+                    })}
+                  </VStack>
+                )}
+              </Box>
             </VStack>
           </DrawerBody>
         </DrawerContent>
