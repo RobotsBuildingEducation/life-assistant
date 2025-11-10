@@ -204,6 +204,11 @@ export const NewAssistant = () => {
         ? Math.round((completedTasks.length / tasks.length) * 100)
         : 0;
 
+      const previousTotalSignal = Number(userDoc?.totalSignalScore || 0);
+      const previousSessions = Number(userDoc?.totalSignalSessions || 0);
+      const updatedTotalSignal = previousTotalSignal + pct;
+      const updatedSessions = previousSessions + 1;
+
       const historyEntry = {
         id: finishedId,
         tasks,
@@ -216,6 +221,18 @@ export const NewAssistant = () => {
         status: statusText,
       };
       setHistory((prev) => [historyEntry, ...prev]);
+
+      setUserDoc((prev) => ({
+        ...(prev || {}),
+        totalSignalScore: updatedTotalSignal,
+        totalSignalSessions: updatedSessions,
+        lastTaskSignalScore: pct,
+        lastTaskStatus: statusText,
+        lastCompletedTasks: completedTasks,
+        lastIncompletedTasks: incompletedTasks,
+        activeTaskCount: 0,
+        activeTaskStatus: "",
+      }));
 
       startNewList();
 
@@ -232,6 +249,33 @@ export const NewAssistant = () => {
           });
         } catch (err) {
           console.error("update memory error", err);
+        }
+
+        try {
+          const finishedAt = serverTimestamp();
+          const sharedPayload = {
+            totalSignalScore: updatedTotalSignal,
+            totalSignalSessions: updatedSessions,
+            lastTaskSignalScore: pct,
+            lastTaskStatus: statusText,
+            lastCompletedTasksCount: completedTasks.length,
+            lastIncompletedTasksCount: incompletedTasks.length,
+            activeTaskCount: 0,
+            activeTaskStatus: "",
+            lastTaskUpdatedAt: finishedAt,
+          };
+          await updateUser(
+            npub,
+            {
+              ...sharedPayload,
+              lastCompletedTasks: completedTasks,
+              lastIncompletedTasks: incompletedTasks,
+              activeTaskStartedAt: null,
+            },
+            sharedPayload
+          );
+        } catch (err) {
+          console.error("update user task signal error", err);
         }
 
         try {
@@ -292,7 +336,16 @@ export const NewAssistant = () => {
         );
       })();
     },
-    [goalInput, memoryId, startNewList, startTime, tasks, userDoc, statusText]
+    [
+      goalInput,
+      memoryId,
+      startNewList,
+      startTime,
+      tasks,
+      userDoc,
+      statusText,
+      setUserDoc,
+    ]
   );
 
   const {
@@ -492,6 +545,22 @@ export const NewAssistant = () => {
       fetch(
         `https://us-central1-datachecking-7997c.cloudfunctions.net/scheduleExpiredListCheck?created=${created}&userId=${npub}`
       ).catch((err) => console.error("schedule list check error", err));
+      try {
+        const startedAt = serverTimestamp();
+        const sharedPayload = {
+          activeTaskCount: tasks.length,
+          activeTaskStatus: statusText,
+          activeTaskStartedAt: startedAt,
+        };
+        await updateUser(npub, sharedPayload, sharedPayload);
+        setUserDoc((prev) => ({
+          ...(prev || {}),
+          activeTaskCount: tasks.length,
+          activeTaskStatus: statusText,
+        }));
+      } catch (err) {
+        console.error("update user active task error", err);
+      }
     } catch (err) {
       console.error("create list error", err);
     }

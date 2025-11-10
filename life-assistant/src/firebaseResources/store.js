@@ -40,7 +40,7 @@ export const getUser = async (npub) => {
   }
 };
 
-export const updateUser = async (npub, payload) => {
+export const updateUser = async (npub, payload, teamSharedData = undefined) => {
   const userDocRef = doc(database, "users", npub);
 
   await updateDoc(userDocRef, {
@@ -54,25 +54,38 @@ export const updateUser = async (npub, payload) => {
     if (!membershipsSnapshot.empty) {
       const batch = writeBatch(database);
 
-      membershipsSnapshot.forEach((membership) => {
-        const membershipData = membership.data();
-        if (membershipData.status === "active" && membershipData.teamId) {
-          const teamRef = doc(database, "teams", membershipData.teamId);
-          batch.set(
-            teamRef,
-            {
-              memberData: {
-                [npub]: {
-                  ...payload,
+      const teamPayloadSource =
+        teamSharedData !== undefined ? teamSharedData : payload;
+      const teamEntries = Object.entries(teamPayloadSource || {}).filter(
+        ([, value]) => value !== undefined
+      );
+
+      if (teamEntries.length > 0) {
+        const teamPayload = teamEntries.reduce((acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        }, {});
+
+        membershipsSnapshot.forEach((membership) => {
+          const membershipData = membership.data();
+          if (membershipData.status === "active" && membershipData.teamId) {
+            const teamRef = doc(database, "teams", membershipData.teamId);
+            batch.set(
+              teamRef,
+              {
+                memberData: {
+                  [npub]: {
+                    ...teamPayload,
+                  },
                 },
               },
-            },
-            { merge: true }
-          );
-        }
-      });
+              { merge: true }
+            );
+          }
+        });
 
-      await batch.commit();
+        await batch.commit();
+      }
     }
   } catch (error) {
     console.error("Failed to sync team member data:", error);

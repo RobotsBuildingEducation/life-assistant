@@ -54,7 +54,6 @@ import {
   acceptTeamInvite,
   declineTeamInvite,
   leaveTeam,
-  getTeamDetails,
 } from "./firebaseResources/store";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
@@ -62,7 +61,7 @@ import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { getToken, deleteToken } from "firebase/messaging";
 import { isUnsupportedBrowser } from "./utils/browser";
 
@@ -323,38 +322,50 @@ function App() {
       return undefined;
     }
 
-    let isActive = true;
+    const ids = Array.from(
+      new Set(teams.map((team) => team.teamId).filter(Boolean))
+    );
 
-    const loadTeamDetails = async () => {
+    if (ids.length === 0) {
+      setTeamDetails({});
+      return undefined;
+    }
+
+    const unsubscribers = ids.map((teamId) => {
       try {
-        const ids = Array.from(
-          new Set(teams.map((team) => team.teamId).filter(Boolean))
-        );
-        const entries = await Promise.all(
-          ids.map(async (teamId) => {
-            const detail = await getTeamDetails(teamId);
-            return [teamId, detail];
-          })
-        );
-
-        if (isActive) {
-          const mappedDetails = {};
-          entries.forEach(([teamId, detail]) => {
-            if (detail) {
-              mappedDetails[teamId] = detail;
+        const teamRef = doc(database, "teams", teamId);
+        return onSnapshot(
+          teamRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              setTeamDetails((prev) => ({
+                ...prev,
+                [teamId]: { id: teamId, ...snapshot.data() },
+              }));
+            } else {
+              setTeamDetails((prev) => {
+                const next = { ...prev };
+                delete next[teamId];
+                return next;
+              });
             }
-          });
-          setTeamDetails(mappedDetails);
-        }
+          },
+          (error) => {
+            console.error("Failed to fetch team details:", error);
+          }
+        );
       } catch (error) {
-        console.error("Failed to fetch team details:", error);
+        console.error("Failed to subscribe to team details:", error);
+        return undefined;
       }
-    };
-
-    loadTeamDetails();
+    });
 
     return () => {
-      isActive = false;
+      unsubscribers.forEach((unsubscribe) => {
+        if (typeof unsubscribe === "function") {
+          unsubscribe();
+        }
+      });
     };
   }, [isViewTeamsOpen, teams]);
 
@@ -606,11 +617,13 @@ function App() {
           bottom={0}
           left={0}
           right={0}
-          bg="white"
+          bg="gray.900"
+          color="white"
           borderTopWidth="1px"
-          borderColor="gray.200"
+          borderColor="gray.700"
           py={3}
           px={4}
+          boxShadow="0 -4px 16px rgba(0, 0, 0, 0.35)"
           zIndex={1300}
         >
           <HStack spacing={3} justify="center">
@@ -619,7 +632,7 @@ function App() {
             </Button>
             <Button
               variant={hasPendingInvites ? "solid" : "outline"}
-              colorScheme={hasPendingInvites ? "pink" : "gray"}
+              colorScheme={hasPendingInvites ? "pink" : "whiteAlpha"}
               onClick={onViewTeamsOpen}
             >
               View team
@@ -845,6 +858,7 @@ function App() {
                       const detail = teamDetails[team.teamId] || {};
                       const members = detail.members || [];
                       const pending = detail.invites || [];
+                      const memberSummaries = detail.memberData || {};
                       return (
                         <Box
                           key={team.id}
@@ -861,15 +875,139 @@ function App() {
                               <Text fontSize="sm" fontWeight="medium">
                                 Members
                               </Text>
-                              <Wrap mt={1} spacing={2}>
-                                {members.map((member) => (
-                                  <WrapItem key={member}>
-                                    <Tag size="sm" borderRadius="full">
-                                      <TagLabel>{member}</TagLabel>
-                                    </Tag>
-                                  </WrapItem>
-                                ))}
-                              </Wrap>
+                              <VStack mt={2} spacing={3} align="stretch">
+                                {members.map((member) => {
+                                  const summary = memberSummaries[member] || {};
+                                  const totalSignalScore = Number(
+                                    summary.totalSignalScore ?? 0
+                                  );
+                                  const totalSignalSessions = Number(
+                                    summary.totalSignalSessions ?? 0
+                                  );
+                                  const averageSignal =
+                                    totalSignalSessions > 0
+                                      ? Math.round(
+                                          totalSignalScore / totalSignalSessions
+                                        )
+                                      : null;
+                                  const lastSignalRaw = summary.lastTaskSignalScore;
+                                  const lastTaskSignal =
+                                    typeof lastSignalRaw === "number"
+                                      ? lastSignalRaw
+                                      : lastSignalRaw
+                                      ? Number(lastSignalRaw)
+                                      : null;
+                                  const completedCount =
+                                    typeof summary.lastCompletedTasksCount ===
+                                    "number"
+                                      ? summary.lastCompletedTasksCount
+                                      : Array.isArray(summary.lastCompletedTasks)
+                                      ? summary.lastCompletedTasks.length
+                                      : null;
+                                  const incompletedCount =
+                                    typeof summary.lastIncompletedTasksCount ===
+                                    "number"
+                                      ? summary.lastIncompletedTasksCount
+                                      : Array.isArray(summary.lastIncompletedTasks)
+                                      ? summary.lastIncompletedTasks.length
+                                      : null;
+                                  const totalTasksCount =
+                                    (completedCount || 0) +
+                                    (incompletedCount || 0);
+                                  const activeTaskCount = Number(
+                                    summary.activeTaskCount ?? 0
+                                  );
+                                  const activeTaskStatus =
+                                    summary.activeTaskStatus || "";
+                                  const hasSharedUpdate =
+                                    averageSignal !== null ||
+                                    lastTaskSignal !== null ||
+                                    totalSignalScore > 0 ||
+                                    activeTaskCount > 0 ||
+                                    Boolean(summary.lastTaskStatus);
+
+                                  return (
+                                    <Box
+                                      key={member}
+                                      borderWidth="1px"
+                                      borderRadius="md"
+                                      p={3}
+                                    >
+                                      <HStack justify="space-between" align="flex-start">
+                                        <Text
+                                          fontWeight="semibold"
+                                          fontSize="sm"
+                                          wordBreak="break-all"
+                                        >
+                                          {member}
+                                        </Text>
+                                        {member === team.owner && (
+                                          <Tag size="sm" colorScheme="purple" borderRadius="full">
+                                            <TagLabel>Owner</TagLabel>
+                                          </Tag>
+                                        )}
+                                      </HStack>
+                                      {hasSharedUpdate ? (
+                                        <VStack align="stretch" spacing={1} mt={2}>
+                                          <HStack justify="space-between">
+                                            <Text fontSize="xs" color="gray.500">
+                                              Total signal
+                                            </Text>
+                                            <Text fontSize="sm" fontWeight="medium">
+                                              {totalSignalSessions > 0
+                                                ? Math.round(totalSignalScore)
+                                                : "—"}
+                                            </Text>
+                                          </HStack>
+                                          <HStack justify="space-between">
+                                            <Text fontSize="xs" color="gray.500">
+                                              Avg task signal
+                                            </Text>
+                                            <Text fontSize="sm" fontWeight="medium">
+                                              {averageSignal !== null
+                                                ? `${averageSignal}%`
+                                                : "—"}
+                                            </Text>
+                                          </HStack>
+                                          <HStack justify="space-between">
+                                            <Text fontSize="xs" color="gray.500">
+                                              Last task signal
+                                            </Text>
+                                            <Text fontSize="sm" fontWeight="medium">
+                                              {lastTaskSignal !== null
+                                                ? `${Math.round(lastTaskSignal)}%`
+                                                : "—"}
+                                            </Text>
+                                          </HStack>
+                                          {totalTasksCount > 0 && (
+                                            <Text fontSize="xs" color="gray.500">
+                                              Last session: {completedCount || 0} of {totalTasksCount} tasks completed
+                                            </Text>
+                                          )}
+                                          {summary.lastTaskStatus && (
+                                            <Text fontSize="xs" color="gray.400" mt={1}>
+                                              “{summary.lastTaskStatus}”
+                                            </Text>
+                                          )}
+                                          {activeTaskCount > 0 && (
+                                            <Text fontSize="xs" color="gray.500" mt={1}>
+                                              Currently working on {activeTaskCount}{" "}
+                                              {activeTaskCount === 1 ? "task" : "tasks"}
+                                              {activeTaskStatus
+                                                ? ` — ${activeTaskStatus}`
+                                                : ""}
+                                            </Text>
+                                          )}
+                                        </VStack>
+                                      ) : (
+                                        <Text fontSize="xs" color="gray.500" mt={2}>
+                                          No shared updates yet.
+                                        </Text>
+                                      )}
+                                    </Box>
+                                  );
+                                })}
+                              </VStack>
                             </Box>
                           )}
                           {pending.length > 0 && (
