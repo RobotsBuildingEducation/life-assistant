@@ -6,6 +6,7 @@ import {
   Box,
   IconButton,
   HStack,
+  VStack,
   useToast,
   useDisclosure,
   Modal,
@@ -25,11 +26,17 @@ import {
   Switch,
   FormControl,
   FormLabel,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
 } from "@chakra-ui/react";
 import { FiGlobe, FiDownload, FiBell, FiShield } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
-import { IoShareOutline } from "react-icons/io5";
+import { IoShareOutline, IoAppsOutline } from "react-icons/io5";
 import { IoIosMore } from "react-icons/io";
 import { BsPlusSquare } from "react-icons/bs";
 import { LuBadgeCheck } from "react-icons/lu";
@@ -99,6 +106,8 @@ function App() {
     onOpen: onNotificationsOpen,
     onClose: onNotificationsClose,
   } = useDisclosure();
+  const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } =
+    useDisclosure();
 
   const [selectedFont, setSelectedFont] = useState(
     localStorage.getItem("theme_font") || "'Inter', sans-serif"
@@ -288,47 +297,94 @@ function App() {
   return (
     <>
       {showHeader && (
-        <Box p={4}>
-          <HStack spacing={3} justify="flex-end">
-            <IconButton
-              aria-label="Privacy"
-              icon={<FiShield />}
-              onClick={onPrivacyOpen}
-            />{" "}
-            {/* <ColorModeSwitcher /> */}
-            <IconButton
-              aria-label="Themes"
-              icon={<FaPalette />}
-              onClick={onThemeOpen}
-            />
-            <IconButton
-              aria-label="Network"
-              icon={<FiGlobe />}
-              onClick={onNetworkOpen}
-            />
-            <IconButton
-              aria-label="Install"
-              icon={<FiDownload />}
-              onClick={onInstallOpen}
-            />
-            <IconButton
-              aria-label="Notifications"
-              icon={<FiBell />}
-              onClick={onNotificationsOpen}
-            />
-            {/* <IconButton
-              aria-label="Test notification"
-              icon={<LuBadgeCheck />}
-              onClick={handleSendTestNotification}
-            /> */}
-            <IconButton
-              aria-label="Sign out"
-              icon={<GiExitDoor />}
-              onClick={handleSignOut}
-            />
-          </HStack>
+        <Box position="fixed" top={4} right={4} zIndex={1400}>
+          <IconButton
+            aria-label="Open menu"
+            icon={<IoAppsOutline />}
+            onClick={onMenuOpen}
+            variant="ghost"
+            size="lg"
+          />
         </Box>
       )}
+
+      <Drawer placement="right" isOpen={isMenuOpen} onClose={onMenuClose}>
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Menu</DrawerHeader>
+          <DrawerBody>
+            <VStack spacing={3} align="stretch">
+              <Button
+                leftIcon={<FiShield />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  onPrivacyOpen();
+                }}
+              >
+                Privacy
+              </Button>
+              <Button
+                leftIcon={<FaPalette />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  onThemeOpen();
+                }}
+              >
+                Themes
+              </Button>
+              <Button
+                leftIcon={<FiGlobe />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  onNetworkOpen();
+                }}
+              >
+                Network
+              </Button>
+              <Button
+                leftIcon={<FiDownload />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  onInstallOpen();
+                }}
+              >
+                Install
+              </Button>
+              <Button
+                leftIcon={<FiBell />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  onNotificationsOpen();
+                }}
+              >
+                Notifications
+              </Button>
+              <Button
+                leftIcon={<GiExitDoor />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  handleSignOut();
+                }}
+              >
+                Sign out
+              </Button>
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
 
       {/* Notifications Modal */}
       <Modal
@@ -497,12 +553,12 @@ function App() {
           <ModalBody>
             <HStack mb={4} justify="center">
               {[
-                "#00ff9c",
-                "#ff007c",
-                "#009cff",
-                "#ffde00",
-                "#ff8c00",
-                "#8a2be2",
+                "#FFD6E8",
+                "#C9E4DE",
+                "#FFF1C1",
+                "#E0BBE4",
+                "#CDE7FF",
+                "#F2C6DE",
               ].map((c) => (
                 <Button
                   key={c}
