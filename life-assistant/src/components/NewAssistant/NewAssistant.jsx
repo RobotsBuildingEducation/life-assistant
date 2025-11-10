@@ -232,6 +232,8 @@ export const NewAssistant = () => {
         lastIncompletedTasks: incompletedTasks,
         activeTaskCount: 0,
         activeTaskStatus: "",
+        activeTaskList: [],
+        lastTaskList: tasks,
       }));
 
       startNewList();
@@ -262,14 +264,16 @@ export const NewAssistant = () => {
             lastIncompletedTasksCount: incompletedTasks.length,
             activeTaskCount: 0,
             activeTaskStatus: "",
+            activeTaskList: [],
+            lastCompletedTasks: completedTasks,
+            lastIncompletedTasks: incompletedTasks,
+            lastTaskList: tasks,
             lastTaskUpdatedAt: finishedAt,
           };
           await updateUser(
             npub,
             {
               ...sharedPayload,
-              lastCompletedTasks: completedTasks,
-              lastIncompletedTasks: incompletedTasks,
               activeTaskStartedAt: null,
             },
             sharedPayload
@@ -551,12 +555,14 @@ export const NewAssistant = () => {
           activeTaskCount: tasks.length,
           activeTaskStatus: statusText,
           activeTaskStartedAt: startedAt,
+          activeTaskList: tasks,
         };
         await updateUser(npub, sharedPayload, sharedPayload);
         setUserDoc((prev) => ({
           ...(prev || {}),
           activeTaskCount: tasks.length,
           activeTaskStatus: statusText,
+          activeTaskList: tasks,
         }));
       } catch (err) {
         console.error("update user active task error", err);

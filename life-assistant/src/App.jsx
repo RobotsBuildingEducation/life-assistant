@@ -112,6 +112,9 @@ function App() {
   const [selectedFont, setSelectedFont] = useState(
     localStorage.getItem("theme_font") || "'Inter', sans-serif"
   );
+  const [currentNpub, setCurrentNpub] = useState(
+    () => localStorage.getItem("local_npub") || ""
+  );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [inviteInput, setInviteInput] = useState("");
@@ -162,11 +165,29 @@ function App() {
     const storedNpub = localStorage.getItem("local_npub");
     if (storedNpub) {
       retrieveUser(storedNpub);
+      setCurrentNpub(storedNpub);
     } else {
       localStorage.clear();
       navigate("/login");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const syncNpub = () => {
+      const latest = localStorage.getItem("local_npub") || "";
+      setCurrentNpub((prev) => (prev !== latest ? latest : prev));
+    };
+
+    syncNpub();
+
+    window.addEventListener("storage", syncNpub);
+    window.addEventListener("focus", syncNpub);
+
+    return () => {
+      window.removeEventListener("storage", syncNpub);
+      window.removeEventListener("focus", syncNpub);
+    };
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme_color");
@@ -183,6 +204,7 @@ function App() {
   const handleSignOut = () => {
     localStorage.removeItem("local_npub");
     localStorage.removeItem("local_nsec");
+    setCurrentNpub("");
     toast({
       title: "Signed out successfully.",
       status: "info",
@@ -297,12 +319,13 @@ function App() {
   };
 
   useEffect(() => {
-    const npub = localStorage.getItem("local_npub");
-    if (!npub) {
+    if (!currentNpub) {
+      setTeams([]);
+      setTeamDetails({});
       return undefined;
     }
 
-    const unsubscribe = listenToUserTeams(npub, (snapshot) => {
+    const unsubscribe = listenToUserTeams(currentNpub, (snapshot) => {
       const memberships = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -315,7 +338,7 @@ function App() {
         unsubscribe();
       }
     };
-  }, []);
+  }, [currentNpub]);
 
   useEffect(() => {
     if (!isViewTeamsOpen) {
@@ -919,12 +942,67 @@ function App() {
                                   );
                                   const activeTaskStatus =
                                     summary.activeTaskStatus || "";
+                                  const lastCompletedTasks = Array.isArray(
+                                    summary.lastCompletedTasks
+                                  )
+                                    ? summary.lastCompletedTasks.filter(
+                                        (task) =>
+                                          typeof task === "string" && task.trim()
+                                      )
+                                    : [];
+                                  const lastIncompletedTasks = Array.isArray(
+                                    summary.lastIncompletedTasks
+                                  )
+                                    ? summary.lastIncompletedTasks.filter(
+                                        (task) =>
+                                          typeof task === "string" && task.trim()
+                                      )
+                                    : [];
+                                  const lastTaskList = Array.isArray(
+                                    summary.lastTaskList
+                                  )
+                                    ? summary.lastTaskList.filter(
+                                        (task) =>
+                                          typeof task === "string" && task.trim()
+                                      )
+                                    : [];
+                                  const activeTaskList = Array.isArray(
+                                    summary.activeTaskList
+                                  )
+                                    ? summary.activeTaskList.filter(
+                                        (task) =>
+                                          typeof task === "string" && task.trim()
+                                      )
+                                    : [];
+                                  const completedPreview =
+                                    lastCompletedTasks.slice(0, 5);
+                                  const incompletedPreview =
+                                    lastIncompletedTasks.slice(0, 5);
+                                  const moreCompleted =
+                                    lastCompletedTasks.length -
+                                    completedPreview.length;
+                                  const moreIncompleted =
+                                    lastIncompletedTasks.length -
+                                    incompletedPreview.length;
+                                  const hasLastTaskDetails =
+                                    completedPreview.length > 0 ||
+                                    incompletedPreview.length > 0 ||
+                                    lastTaskList.length > 0;
+                                  const activeTasksPreview =
+                                    activeTaskList.slice(0, 5);
+                                  const moreActiveTasks =
+                                    activeTaskList.length -
+                                    activeTasksPreview.length;
+                                  const showActiveTaskList =
+                                    activeTaskCount > 0 &&
+                                    activeTasksPreview.length > 0;
                                   const hasSharedUpdate =
                                     averageSignal !== null ||
                                     lastTaskSignal !== null ||
                                     totalSignalScore > 0 ||
                                     activeTaskCount > 0 ||
-                                    Boolean(summary.lastTaskStatus);
+                                    Boolean(summary.lastTaskStatus) ||
+                                    hasLastTaskDetails;
 
                                   return (
                                     <Box
@@ -989,14 +1067,120 @@ function App() {
                                               “{summary.lastTaskStatus}”
                                             </Text>
                                           )}
-                                          {activeTaskCount > 0 && (
-                                            <Text fontSize="xs" color="gray.500" mt={1}>
-                                              Currently working on {activeTaskCount}{" "}
-                                              {activeTaskCount === 1 ? "task" : "tasks"}
-                                              {activeTaskStatus
-                                                ? ` — ${activeTaskStatus}`
-                                                : ""}
-                                            </Text>
+                                          {hasLastTaskDetails && (
+                                            <Box mt={2}>
+                                              <Text
+                                                fontSize="xs"
+                                                color="gray.500"
+                                                textTransform="uppercase"
+                                                letterSpacing="wide"
+                                              >
+                                                Last session tasks
+                                              </Text>
+                                              <VStack align="stretch" spacing={1} mt={1}>
+                                                {completedPreview.map((task, index) => (
+                                                  <HStack
+                                                    key={`completed-${member}-${index}`}
+                                                    align="flex-start"
+                                                    spacing={2}
+                                                  >
+                                                    <Text fontSize="xs" color="green.300" mt="1px">
+                                                      ✓
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.200">
+                                                      {task}
+                                                    </Text>
+                                                  </HStack>
+                                                ))}
+                                                {moreCompleted > 0 && (
+                                                  <Text fontSize="xs" color="green.200">
+                                                    +{moreCompleted} more completed
+                                                  </Text>
+                                                )}
+                                                {incompletedPreview.map((task, index) => (
+                                                  <HStack
+                                                    key={`incompleted-${member}-${index}`}
+                                                    align="flex-start"
+                                                    spacing={2}
+                                                  >
+                                                    <Text fontSize="xs" color="orange.300" mt="1px">
+                                                      •
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.200">
+                                                      {task}
+                                                    </Text>
+                                                  </HStack>
+                                                ))}
+                                                {moreIncompleted > 0 && (
+                                                  <Text fontSize="xs" color="orange.200">
+                                                    +{moreIncompleted} more to finish
+                                                  </Text>
+                                                )}
+                                                {lastTaskList.length > 0 &&
+                                                  completedPreview.length === 0 &&
+                                                  incompletedPreview.length === 0 && (
+                                                    <VStack align="stretch" spacing={1}>
+                                                      {lastTaskList.slice(0, 5).map((task, index) => (
+                                                        <Text
+                                                          key={`lasttask-${member}-${index}`}
+                                                          fontSize="xs"
+                                                          color="gray.200"
+                                                        >
+                                                          {task}
+                                                        </Text>
+                                                      ))}
+                                                      {lastTaskList.length > 5 && (
+                                                        <Text fontSize="xs" color="gray.300">
+                                                          +{lastTaskList.length - 5} more
+                                                        </Text>
+                                                      )}
+                                                    </VStack>
+                                                  )}
+                                              </VStack>
+                                            </Box>
+                                          )}
+                                          {showActiveTaskList ? (
+                                            <Box mt={2}>
+                                              <Text fontSize="xs" color="gray.500">
+                                                Currently working on
+                                              </Text>
+                                              <VStack align="stretch" spacing={1} mt={1}>
+                                                {activeTasksPreview.map((task, index) => (
+                                                  <HStack
+                                                    key={`active-${member}-${index}`}
+                                                    align="flex-start"
+                                                    spacing={2}
+                                                  >
+                                                    <Text fontSize="xs" color="cyan.300" mt="1px">
+                                                      •
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.200">
+                                                      {task}
+                                                    </Text>
+                                                  </HStack>
+                                                ))}
+                                                {moreActiveTasks > 0 && (
+                                                  <Text fontSize="xs" color="cyan.200">
+                                                    +{moreActiveTasks} more tasks
+                                                  </Text>
+                                                )}
+                                              </VStack>
+                                              {activeTaskStatus && (
+                                                <Text fontSize="xs" color="gray.400" mt={1}>
+                                                  Status: {activeTaskStatus}
+                                                </Text>
+                                              )}
+                                            </Box>
+                                          ) : (
+                                            activeTaskCount > 0 && (
+                                              <Text fontSize="xs" color="gray.500" mt={1}>
+                                                Currently working on {activeTaskCount}{" "}
+                                                {activeTaskCount === 1 ? "task" : "tasks"}
+                                                {activeTaskStatus
+                                                  ? ` — ${activeTaskStatus}`
+                                                  : ""}
+                                              </Text>
+                                            )
                                           )}
                                         </VStack>
                                       ) : (
