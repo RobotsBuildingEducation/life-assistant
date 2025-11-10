@@ -20,7 +20,6 @@ import {
   Flex,
   Divider,
   Text,
-  Link,
   Input,
   Select,
   Switch,
@@ -33,7 +32,7 @@ import {
   DrawerHeader,
   DrawerBody,
 } from "@chakra-ui/react";
-import { FiGlobe, FiDownload, FiBell, FiShield } from "react-icons/fi";
+import { FiDownload, FiBell, FiShield, FiCopy, FiKey } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
 import { IoShareOutline, IoAppsOutline } from "react-icons/io5";
@@ -52,24 +51,6 @@ import { doc, updateDoc } from "firebase/firestore";
 import { getToken, deleteToken } from "firebase/messaging";
 import { isUnsupportedBrowser } from "./utils/browser";
 
-const ActionButton = ({ href, text }) => (
-  <Button
-    as="a"
-    href={href}
-    mt={2}
-    mb={4}
-    variant={"outline"}
-    target="_blank"
-    width="45%"
-    margin={2}
-    height={100}
-    boxShadow="0.5px 0.5px 1px 0px rgba(0,0,0,0.75)"
-    fontSize={"small"}
-  >
-    {text}
-  </Button>
-);
-
 function App() {
   useDecentralizedIdentity(
     localStorage.getItem("local_npub"),
@@ -79,18 +60,13 @@ function App() {
   const location = useLocation();
   const toast = useToast();
 
-  // Disclosure hooks for Network and Install modals
+  // Disclosure hooks for app modals
   const {
     isOpen: isPrivacyOpen,
     onOpen: onPrivacyOpen,
     onClose: onPrivacyClose,
   } = useDisclosure(); // NEW
 
-  const {
-    isOpen: isNetworkOpen,
-    onOpen: onNetworkOpen,
-    onClose: onNetworkClose,
-  } = useDisclosure();
   const {
     isOpen: isInstallOpen,
     onOpen: onInstallOpen,
@@ -316,6 +292,29 @@ function App() {
           <DrawerBody>
             <VStack spacing={3} align="stretch">
               <Button
+                leftIcon={<FiCopy />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  handleCopyPubKey();
+                }}
+              >
+                Copy ID
+              </Button>
+              <Button
+                leftIcon={<FiKey />}
+                justifyContent="flex-start"
+                variant="ghost"
+                onClick={() => {
+                  onMenuClose();
+                  handleCopySecret();
+                }}
+              >
+                Copy Secret Key
+              </Button>
+              <Divider />
+              <Button
                 leftIcon={<FiShield />}
                 justifyContent="flex-start"
                 variant="ghost"
@@ -336,17 +335,6 @@ function App() {
                 }}
               >
                 Themes
-              </Button>
-              <Button
-                leftIcon={<FiGlobe />}
-                justifyContent="flex-start"
-                variant="ghost"
-                onClick={() => {
-                  onMenuClose();
-                  onNetworkOpen();
-                }}
-              >
-                Network
               </Button>
               <Button
                 leftIcon={<FiDownload />}
@@ -417,76 +405,6 @@ function App() {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onMouseDown={onNotificationsClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Network Modal */}
-      <Modal isOpen={isNetworkOpen} onClose={onNetworkClose} isCentered>
-        <ModalOverlay />
-        <ModalContent textAlign="center">
-          <ModalHeader>Decentralize</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Button
-              onMouseDown={handleCopyPubKey}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  handleCopyPubKey();
-                }
-              }}
-              mb={2}
-            >
-              🆔 Copy ID
-            </Button>
-            <Button
-              onMouseDown={handleCopySecret}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  handleCopySecret();
-                }
-              }}
-              mb={6}
-            >
-              🔑 Copy Secret Key
-            </Button>
-            <Divider mb={6} />
-
-            <Flex direction="column" alignItems={"center"}>
-              <ActionButton
-                href={`https://primal.net/p/${localStorage.getItem(
-                  "local_npub"
-                )}`}
-                text="Your Profile"
-              />
-              <ActionButton
-                href="https://primal.net/home"
-                text="Go To Social Wallet"
-              />
-              <ActionButton href="https://otherstuff.app" text="App Store" />
-            </Flex>
-            <Divider my={6} />
-            <Link
-              href="https://primal.net/p/npub14vskcp90k6gwp6sxjs2jwwqpcmahg6wz3h5vzq0yn6crrsq0utts52axlt"
-              isExternal
-              style={{ textDecoration: "underline" }}
-            >
-              Connect With Me
-            </Link>
-          </ModalBody>
-
-          <ModalFooter>
-            <Button
-              variant="ghost"
-              onMouseDown={onNetworkClose}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  onNetworkClose();
-                }
-              }}
-            >
               Close
             </Button>
           </ModalFooter>
