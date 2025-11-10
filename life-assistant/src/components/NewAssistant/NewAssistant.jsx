@@ -209,6 +209,17 @@ export const NewAssistant = () => {
       const updatedTotalSignal = previousTotalSignal + pct;
       const updatedSessions = previousSessions + 1;
 
+      const finishedAt = serverTimestamp();
+      const sessionEntry = {
+        tasks,
+        completedTasks,
+        incompletedTasks,
+        signalScore: pct,
+        status: statusText,
+        finishedAt,
+        startedAt: startTime || null,
+      };
+
       const historyEntry = {
         id: finishedId,
         tasks,
@@ -234,6 +245,7 @@ export const NewAssistant = () => {
         activeTaskStatus: "",
         activeTaskList: [],
         lastTaskList: tasks,
+        activeTaskSessionId: null,
       }));
 
       startNewList();
@@ -245,7 +257,7 @@ export const NewAssistant = () => {
             completed: completedTasks,
             incompleted: incompletedTasks,
             finished: true,
-            finishedAt: serverTimestamp(),
+            finishedAt,
             percentage: pct,
             status: statusText,
           });
@@ -254,7 +266,6 @@ export const NewAssistant = () => {
         }
 
         try {
-          const finishedAt = serverTimestamp();
           const sharedPayload = {
             totalSignalScore: updatedTotalSignal,
             totalSignalSessions: updatedSessions,
@@ -269,6 +280,10 @@ export const NewAssistant = () => {
             lastIncompletedTasks: incompletedTasks,
             lastTaskList: tasks,
             lastTaskUpdatedAt: finishedAt,
+            activeTaskSessionId: null,
+            teamSessions: {
+              [finishedId]: sessionEntry,
+            },
           };
           await updateUser(
             npub,
@@ -556,6 +571,7 @@ export const NewAssistant = () => {
           activeTaskStatus: statusText,
           activeTaskStartedAt: startedAt,
           activeTaskList: tasks,
+          activeTaskSessionId: docRef.id,
         };
         await updateUser(npub, sharedPayload, sharedPayload);
         setUserDoc((prev) => ({
@@ -563,6 +579,7 @@ export const NewAssistant = () => {
           activeTaskCount: tasks.length,
           activeTaskStatus: statusText,
           activeTaskList: tasks,
+          activeTaskSessionId: docRef.id,
         }));
       } catch (err) {
         console.error("update user active task error", err);

@@ -54,6 +54,7 @@ import {
   acceptTeamInvite,
   declineTeamInvite,
   leaveTeam,
+  deleteTeam,
 } from "./firebaseResources/store";
 import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
@@ -611,6 +612,46 @@ function App() {
     }
   };
 
+  const handleDeleteTeam = async (teamId) => {
+    const npub = localStorage.getItem("local_npub");
+    if (!npub) {
+      toast({
+        title: "You need to be signed in to delete a team.",
+        status: "error",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      "Deleting this team will remove it for everyone. Continue?"
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    setTeamLoading(teamId, true);
+    try {
+      await deleteTeam(npub, teamId);
+      toast({
+        title: "Team deleted.",
+        status: "success",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to delete team:", error);
+      toast({
+        title: "Unable to delete team.",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
+    } finally {
+      setTeamLoading(teamId, false);
+    }
+  };
+
   // Only show the header (icons) on assistant or archived assistant routes
   const showHeader = ["/assistant", "/archived/assistant"].some((path) =>
     location.pathname.startsWith(path)
@@ -657,8 +698,15 @@ function App() {
               variant={hasPendingInvites ? "solid" : "outline"}
               colorScheme={hasPendingInvites ? "pink" : "whiteAlpha"}
               onClick={onViewTeamsOpen}
+              boxShadow={
+                hasPendingInvites
+                  ? "0 0 0 3px rgba(236, 72, 153, 0.4)"
+                  : undefined
+              }
+              fontWeight={hasPendingInvites ? "bold" : "normal"}
             >
               View team
+              {hasPendingInvites ? ` (${pendingInvites.length})` : ""}
             </Button>
           </HStack>
         </Box>
@@ -974,6 +1022,85 @@ function App() {
                                           typeof task === "string" && task.trim()
                                       )
                                     : [];
+                                  const teamSessionsRaw =
+                                    summary.teamSessions &&
+                                    typeof summary.teamSessions === "object" &&
+                                    !Array.isArray(summary.teamSessions)
+                                      ? Object.entries(summary.teamSessions)
+                                      : [];
+                                  const sessionEntries = teamSessionsRaw.map(
+                                    ([sessionId, session]) => {
+                                      const finishedAtValue = session?.finishedAt;
+                                      const startedAtValue = session?.startedAt;
+                                      const finishedAtDate =
+                                        finishedAtValue &&
+                                        typeof finishedAtValue.toDate === "function"
+                                          ? finishedAtValue.toDate()
+                                          : finishedAtValue instanceof Date
+                                          ? finishedAtValue
+                                          : null;
+                                      const startedAtDate =
+                                        startedAtValue &&
+                                        typeof startedAtValue.toDate === "function"
+                                          ? startedAtValue.toDate()
+                                          : startedAtValue instanceof Date
+                                          ? startedAtValue
+                                          : null;
+                                      const completedTasksList = Array.isArray(
+                                        session?.completedTasks
+                                      )
+                                        ? session.completedTasks.filter(
+                                            (task) =>
+                                              typeof task === "string" && task.trim()
+                                          )
+                                        : [];
+                                      const incompletedTasksList = Array.isArray(
+                                        session?.incompletedTasks
+                                      )
+                                        ? session.incompletedTasks.filter(
+                                            (task) =>
+                                              typeof task === "string" && task.trim()
+                                          )
+                                        : [];
+                                      const allTasksList = Array.isArray(
+                                        session?.tasks
+                                      )
+                                        ? session.tasks.filter(
+                                            (task) =>
+                                              typeof task === "string" && task.trim()
+                                          )
+                                        : [];
+                                      const signalScoreValue =
+                                        typeof session?.signalScore === "number"
+                                          ? Math.round(session.signalScore)
+                                          : session?.signalScore !== undefined
+                                          ? Number(session.signalScore)
+                                          : null;
+                                      return {
+                                        sessionId,
+                                        finishedAt: finishedAtDate,
+                                        startedAt: startedAtDate,
+                                        completedTasks: completedTasksList,
+                                        incompletedTasks: incompletedTasksList,
+                                        tasks: allTasksList,
+                                        signalScore:
+                                          signalScoreValue !== null &&
+                                          !Number.isNaN(signalScoreValue)
+                                            ? signalScoreValue
+                                            : null,
+                                        status:
+                                          typeof session?.status === "string"
+                                            ? session.status
+                                            : "",
+                                      };
+                                    }
+                                  );
+                                  sessionEntries.sort(
+                                    (a, b) =>
+                                      (b.finishedAt?.getTime?.() || 0) -
+                                      (a.finishedAt?.getTime?.() || 0)
+                                  );
+                                  const hasSessionHistory = sessionEntries.length > 0;
                                   const completedPreview =
                                     lastCompletedTasks.slice(0, 5);
                                   const incompletedPreview =
@@ -985,9 +1112,10 @@ function App() {
                                     lastIncompletedTasks.length -
                                     incompletedPreview.length;
                                   const hasLastTaskDetails =
-                                    completedPreview.length > 0 ||
-                                    incompletedPreview.length > 0 ||
-                                    lastTaskList.length > 0;
+                                    !hasSessionHistory &&
+                                    (completedPreview.length > 0 ||
+                                      incompletedPreview.length > 0 ||
+                                      lastTaskList.length > 0);
                                   const activeTasksPreview =
                                     activeTaskList.slice(0, 5);
                                   const moreActiveTasks =
@@ -1002,6 +1130,7 @@ function App() {
                                     totalSignalScore > 0 ||
                                     activeTaskCount > 0 ||
                                     Boolean(summary.lastTaskStatus) ||
+                                    hasSessionHistory ||
                                     hasLastTaskDetails;
 
                                   return (
@@ -1067,7 +1196,133 @@ function App() {
                                               “{summary.lastTaskStatus}”
                                             </Text>
                                           )}
-                                          {hasLastTaskDetails && (
+                                          {hasSessionHistory ? (
+                                            <Box mt={2}>
+                                              <Text
+                                                fontSize="xs"
+                                                color="gray.500"
+                                                textTransform="uppercase"
+                                                letterSpacing="wide"
+                                              >
+                                                Session history
+                                              </Text>
+                                              <VStack align="stretch" spacing={2} mt={1}>
+                                                {sessionEntries.map((session, index) => {
+                                                  const hasCompleted =
+                                                    session.completedTasks.length > 0;
+                                                  const hasIncompleted =
+                                                    session.incompletedTasks.length > 0;
+                                                  const fallbackTasks =
+                                                    !hasCompleted &&
+                                                    !hasIncompleted &&
+                                                    session.tasks.length > 0
+                                                      ? session.tasks
+                                                      : [];
+                                                  const timestampLabel =
+                                                    session.finishedAt instanceof Date
+                                                      ? session.finishedAt.toLocaleString()
+                                                      : `Session ${index + 1}`;
+                                                  return (
+                                                    <Box
+                                                      key={`session-${member}-${session.sessionId}`}
+                                                      borderWidth="1px"
+                                                      borderRadius="md"
+                                                      p={2}
+                                                    >
+                                                      <HStack justify="space-between" align="flex-start">
+                                                        <Text
+                                                          fontSize="xs"
+                                                          fontWeight="semibold"
+                                                          color="gray.500"
+                                                        >
+                                                          {timestampLabel}
+                                                        </Text>
+                                                        {session.signalScore !== null && (
+                                                          <Text fontSize="xs" color="green.300">
+                                                            {session.signalScore}% signal
+                                                          </Text>
+                                                        )}
+                                                      </HStack>
+                                                      {session.status && (
+                                                        <Text fontSize="xs" color="gray.400" mt={1}>
+                                                          “{session.status}”
+                                                        </Text>
+                                                      )}
+                                                      {hasCompleted && (
+                                                        <Box mt={2}>
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="green.300"
+                                                            textTransform="uppercase"
+                                                            letterSpacing="wide"
+                                                          >
+                                                            Completed
+                                                          </Text>
+                                                          <VStack align="stretch" spacing={1} mt={1}>
+                                                            {session.completedTasks.map((task, taskIndex) => (
+                                                              <Text
+                                                                key={`session-${session.sessionId}-completed-${taskIndex}`}
+                                                                fontSize="xs"
+                                                                color="gray.200"
+                                                              >
+                                                                {task}
+                                                              </Text>
+                                                            ))}
+                                                          </VStack>
+                                                        </Box>
+                                                      )}
+                                                      {hasIncompleted && (
+                                                        <Box mt={2}>
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="orange.300"
+                                                            textTransform="uppercase"
+                                                            letterSpacing="wide"
+                                                          >
+                                                            Still working
+                                                          </Text>
+                                                          <VStack align="stretch" spacing={1} mt={1}>
+                                                            {session.incompletedTasks.map((task, taskIndex) => (
+                                                              <Text
+                                                                key={`session-${session.sessionId}-incompleted-${taskIndex}`}
+                                                                fontSize="xs"
+                                                                color="gray.200"
+                                                              >
+                                                                {task}
+                                                              </Text>
+                                                            ))}
+                                                          </VStack>
+                                                        </Box>
+                                                      )}
+                                                      {fallbackTasks.length > 0 && (
+                                                        <Box mt={2}>
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="gray.500"
+                                                            textTransform="uppercase"
+                                                            letterSpacing="wide"
+                                                          >
+                                                            Tasks
+                                                          </Text>
+                                                          <VStack align="stretch" spacing={1} mt={1}>
+                                                            {fallbackTasks.map((task, taskIndex) => (
+                                                              <Text
+                                                                key={`session-${session.sessionId}-task-${taskIndex}`}
+                                                                fontSize="xs"
+                                                                color="gray.200"
+                                                              >
+                                                                {task}
+                                                              </Text>
+                                                            ))}
+                                                          </VStack>
+                                                        </Box>
+                                                      )}
+                                                    </Box>
+                                                  );
+                                                })}
+                                              </VStack>
+                                            </Box>
+                                          ) : hasLastTaskDetails ? (
                                             <Box mt={2}>
                                               <Text
                                                 fontSize="xs"
@@ -1138,7 +1393,7 @@ function App() {
                                                   )}
                                               </VStack>
                                             </Box>
-                                          )}
+                                          ) : null}
                                           {showActiveTaskList ? (
                                             <Box mt={2}>
                                               <Text fontSize="xs" color="gray.500">
@@ -1214,19 +1469,30 @@ function App() {
                               </Wrap>
                             </Box>
                           )}
-                          <Button
-                            size="sm"
-                            mt={3}
-                            variant="outline"
-                            colorScheme="red"
-                            onClick={() => handleLeaveTeam(team.teamId)}
-                            isDisabled={team.role === "owner"}
-                            isLoading={!!teamActionLoading[team.teamId]}
-                          >
-                            {team.role === "owner"
-                              ? "Transfer ownership to leave"
-                              : "Leave team"}
-                          </Button>
+                          <HStack mt={3} spacing={2} flexWrap="wrap">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              colorScheme="red"
+                              onClick={() => handleLeaveTeam(team.teamId)}
+                              isDisabled={team.role === "owner"}
+                              isLoading={!!teamActionLoading[team.teamId]}
+                            >
+                              {team.role === "owner"
+                                ? "Transfer ownership to leave"
+                                : "Leave team"}
+                            </Button>
+                            {team.role === "owner" && (
+                              <Button
+                                size="sm"
+                                colorScheme="red"
+                                onClick={() => handleDeleteTeam(team.teamId)}
+                                isLoading={!!teamActionLoading[team.teamId]}
+                              >
+                                Delete team
+                              </Button>
+                            )}
+                          </HStack>
                         </Box>
                       );
                     })}

@@ -220,3 +220,32 @@ export const leaveTeam = async (npub, teamId) => {
 
   await batch.commit();
 };
+
+export const deleteTeam = async (ownerNpub, teamId) => {
+  const teamRef = doc(database, "teams", teamId);
+  const teamSnapshot = await getDoc(teamRef);
+
+  if (!teamSnapshot.exists()) {
+    throw new Error("Team not found.");
+  }
+
+  const teamData = teamSnapshot.data();
+
+  if (teamData.owner !== ownerNpub) {
+    throw new Error("Only the team owner can delete this team.");
+  }
+
+  const batch = writeBatch(database);
+
+  const members = Array.isArray(teamData.members) ? teamData.members : [];
+  const invites = Array.isArray(teamData.invites) ? teamData.invites : [];
+
+  [...new Set([...members, ...invites])].forEach((npub) => {
+    const membershipRef = doc(database, "users", npub, "teams", teamId);
+    batch.delete(membershipRef);
+  });
+
+  batch.delete(teamRef);
+
+  await batch.commit();
+};
