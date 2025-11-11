@@ -84,7 +84,7 @@ export const Landing = () => {
               justifyContent: "center",
             }}
           >
-            <RoleCanvas role={role} width={200} height={200} color="#feeabd" />
+            <RoleCanvas role={role} width={200} height={200} color="#000" />
           </div>
           <Heading as="h2" size="lg" textAlign="center" p={0} m={0}>
             16Hours

@@ -487,7 +487,8 @@ export const NewAssistant = () => {
       return;
     }
 
-    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const average =
+      values.reduce((sum, value) => sum + value, 0) / values.length;
     setGlobalAverage(Math.round(clampPct(average)));
   }, [history]);
 
@@ -667,7 +668,7 @@ export const NewAssistant = () => {
             color="white"
             textShadow="0.75px 0.75px 0px black"
           />
-          <Text color="#03fc56" fontWeight={"bolder"}>
+          <Text color="#009a33ff" fontWeight={"bolder"}>
             Signal Score
           </Text>
         </VStack>
@@ -684,14 +685,11 @@ export const NewAssistant = () => {
           }}
         />
       </Heading>
-      <Text fontSize={"sm"} mt={4} mb={12}>
-        A task in your mind is an idea. Writing it down turns it into a plan.
-        <br />
-        <br />
+      <Text fontSize={"xs"} mt={4} mb={12}>
         What you need to accomplish in the next 16 hours is your{" "}
-        <span style={{ color: "cyan", fontWeight: "bolder" }}>signal</span>,
+        <span style={{ color: "#02a1b3", fontWeight: "bolder" }}>signal</span>,
         everything else is{" "}
-        <span style={{ color: "hotpink", fontWeight: "bolder" }}>noise.</span>{" "}
+        <span style={{ color: "#a30290", fontWeight: "bolder" }}>noise.</span>{" "}
         Aim to complete at least 80% of necessary tasks to make progress with
         your goals.
       </Text>
@@ -763,8 +761,9 @@ export const NewAssistant = () => {
                     onClick={createList}
                     isLoading={creating}
                     disabled={!tasks.length}
+                    variant={"outline"}
                   >
-                    Start Tasks
+                    Start tasks
                   </Button>
                 </>
               ) : (
@@ -793,7 +792,7 @@ export const NewAssistant = () => {
         )}
       </VStack>
 
-      <Box mt={16}>
+      <Box mt={16} marginBottom={12} paddingBottom={6}>
         <HStack justify="space-between" align="center">
           <Heading size="sm">History</Heading>
           <Button size="xs" onClick={generateAdvice}>

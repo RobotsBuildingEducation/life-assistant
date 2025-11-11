@@ -102,8 +102,11 @@ function App() {
     onOpen: onNotificationsOpen,
     onClose: onNotificationsClose,
   } = useDisclosure();
-  const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } =
-    useDisclosure();
+  const {
+    isOpen: isMenuOpen,
+    onOpen: onMenuOpen,
+    onClose: onMenuClose,
+  } = useDisclosure();
   const {
     isOpen: isCreateTeamOpen,
     onOpen: onCreateTeamOpen,
@@ -435,7 +438,10 @@ function App() {
       if (!identifier) {
         return;
       }
-      if (userNameLookup[identifier] || nameFetchInFlight.current.has(identifier)) {
+      if (
+        userNameLookup[identifier] ||
+        nameFetchInFlight.current.has(identifier)
+      ) {
         return;
       }
 
@@ -768,6 +774,8 @@ function App() {
             onClick={onMenuOpen}
             variant="ghost"
             size="lg"
+            backgroundColor="white"
+            border="1px solid black"
           />
         </Box>
       )}
@@ -778,13 +786,14 @@ function App() {
           bottom={0}
           left={0}
           right={0}
-          bg="gray.900"
+          // bg="white"
           color="white"
           borderTopWidth="1px"
           borderColor="gray.700"
+          backdropFilter="blur(2px)"
           py={3}
           px={4}
-          boxShadow="0 -4px 16px rgba(0, 0, 0, 0.35)"
+          boxShadow="0 -1px 1 px rgba(0, 0, 0, 0.35)"
           zIndex={1300}
         >
           <HStack spacing={3} justify="center">
@@ -794,10 +803,12 @@ function App() {
             <Button
               variant={hasPendingInvites ? "solid" : "outline"}
               colorScheme={hasPendingInvites ? "pink" : "whiteAlpha"}
+              color="black"
               onClick={onViewTeamsOpen}
+              bg="white"
               boxShadow={
                 hasPendingInvites
-                  ? "0 0 0 3px rgba(236, 72, 153, 0.4)"
+                  ? "0 0 0 3px rgba(72, 236, 151, 0.4)"
                   : undefined
               }
               fontWeight={hasPendingInvites ? "bold" : "normal"}
@@ -1054,613 +1065,897 @@ function App() {
                               </AccordionButton>
                             </h3>
                             <AccordionPanel px={3} pb={4} pt={2}>
-                          {members.length > 0 && (
-                            <Box mt={2}>
-                              <Text fontSize="sm" fontWeight="medium">
-                                Members
-                              </Text>
-                              <Accordion allowMultiple reduceMotion mt={2}>
-                                {members.map((member, memberIndex) => {
-                                  const summary = memberSummaries[member] || {};
-                                  const totalSignalScore = Number(
-                                    summary.totalSignalScore ?? 0
-                                  );
-                                  const totalSignalSessions = Number(
-                                    summary.totalSignalSessions ?? 0
-                                  );
-                                  const averageSignal =
-                                    totalSignalSessions > 0
-                                      ? Math.round(
-                                          totalSignalScore / totalSignalSessions
+                              {members.length > 0 && (
+                                <Box mt={2}>
+                                  <Text fontSize="sm" fontWeight="medium">
+                                    Members
+                                  </Text>
+                                  <Accordion allowMultiple reduceMotion mt={2}>
+                                    {members.map((member, memberIndex) => {
+                                      const summary =
+                                        memberSummaries[member] || {};
+                                      const totalSignalScore = Number(
+                                        summary.totalSignalScore ?? 0
+                                      );
+                                      const totalSignalSessions = Number(
+                                        summary.totalSignalSessions ?? 0
+                                      );
+                                      const averageSignal =
+                                        totalSignalSessions > 0
+                                          ? Math.round(
+                                              totalSignalScore /
+                                                totalSignalSessions
+                                            )
+                                          : null;
+                                      const lastSignalRaw =
+                                        summary.lastTaskSignalScore;
+                                      const lastTaskSignal =
+                                        typeof lastSignalRaw === "number"
+                                          ? lastSignalRaw
+                                          : lastSignalRaw
+                                          ? Number(lastSignalRaw)
+                                          : null;
+                                      const completedCount =
+                                        typeof summary.lastCompletedTasksCount ===
+                                        "number"
+                                          ? summary.lastCompletedTasksCount
+                                          : Array.isArray(
+                                              summary.lastCompletedTasks
+                                            )
+                                          ? summary.lastCompletedTasks.length
+                                          : null;
+                                      const incompletedCount =
+                                        typeof summary.lastIncompletedTasksCount ===
+                                        "number"
+                                          ? summary.lastIncompletedTasksCount
+                                          : Array.isArray(
+                                              summary.lastIncompletedTasks
+                                            )
+                                          ? summary.lastIncompletedTasks.length
+                                          : null;
+                                      const totalTasksCount =
+                                        (completedCount || 0) +
+                                        (incompletedCount || 0);
+                                      const activeTaskCount = Number(
+                                        summary.activeTaskCount ?? 0
+                                      );
+                                      const activeTaskStatus =
+                                        summary.activeTaskStatus || "";
+                                      const lastCompletedTasks = Array.isArray(
+                                        summary.lastCompletedTasks
+                                      )
+                                        ? summary.lastCompletedTasks.filter(
+                                            (task) =>
+                                              typeof task === "string" &&
+                                              task.trim()
+                                          )
+                                        : [];
+                                      const lastIncompletedTasks =
+                                        Array.isArray(
+                                          summary.lastIncompletedTasks
                                         )
-                                      : null;
-                                  const lastSignalRaw = summary.lastTaskSignalScore;
-                                  const lastTaskSignal =
-                                    typeof lastSignalRaw === "number"
-                                      ? lastSignalRaw
-                                      : lastSignalRaw
-                                      ? Number(lastSignalRaw)
-                                      : null;
-                                  const completedCount =
-                                    typeof summary.lastCompletedTasksCount ===
-                                    "number"
-                                      ? summary.lastCompletedTasksCount
-                                      : Array.isArray(summary.lastCompletedTasks)
-                                      ? summary.lastCompletedTasks.length
-                                      : null;
-                                  const incompletedCount =
-                                    typeof summary.lastIncompletedTasksCount ===
-                                    "number"
-                                      ? summary.lastIncompletedTasksCount
-                                      : Array.isArray(summary.lastIncompletedTasks)
-                                      ? summary.lastIncompletedTasks.length
-                                      : null;
-                                  const totalTasksCount =
-                                    (completedCount || 0) +
-                                    (incompletedCount || 0);
-                                  const activeTaskCount = Number(
-                                    summary.activeTaskCount ?? 0
-                                  );
-                                  const activeTaskStatus =
-                                    summary.activeTaskStatus || "";
-                                  const lastCompletedTasks = Array.isArray(
-                                    summary.lastCompletedTasks
-                                  )
-                                    ? summary.lastCompletedTasks.filter(
-                                        (task) =>
-                                          typeof task === "string" && task.trim()
+                                          ? summary.lastIncompletedTasks.filter(
+                                              (task) =>
+                                                typeof task === "string" &&
+                                                task.trim()
+                                            )
+                                          : [];
+                                      const lastTaskList = Array.isArray(
+                                        summary.lastTaskList
                                       )
-                                    : [];
-                                  const lastIncompletedTasks = Array.isArray(
-                                    summary.lastIncompletedTasks
-                                  )
-                                    ? summary.lastIncompletedTasks.filter(
-                                        (task) =>
-                                          typeof task === "string" && task.trim()
-                                      )
-                                    : [];
-                                  const lastTaskList = Array.isArray(
-                                    summary.lastTaskList
-                                  )
-                                    ? summary.lastTaskList.filter(
-                                        (task) =>
-                                          typeof task === "string" && task.trim()
-                                      )
-                                    : [];
-                                  const activeTaskList = Array.isArray(
-                                    summary.activeTaskList
-                                  )
-                                    ? summary.activeTaskList.filter(
-                                        (task) =>
-                                          typeof task === "string" && task.trim()
-                                      )
-                                    : [];
-                                  const teamSessionsRaw =
-                                    summary.teamSessions &&
-                                    typeof summary.teamSessions === "object" &&
-                                    !Array.isArray(summary.teamSessions)
-                                      ? Object.entries(summary.teamSessions)
-                                      : [];
-                                  const sessionEntries = teamSessionsRaw.map(
-                                    ([sessionId, session]) => {
-                                      const finishedAtValue = session?.finishedAt;
-                                      const startedAtValue = session?.startedAt;
-                                      const finishedAtDate =
-                                        finishedAtValue &&
-                                        typeof finishedAtValue.toDate === "function"
-                                          ? finishedAtValue.toDate()
-                                          : finishedAtValue instanceof Date
-                                          ? finishedAtValue
-                                          : null;
-                                      const startedAtDate =
-                                        startedAtValue &&
-                                        typeof startedAtValue.toDate === "function"
-                                          ? startedAtValue.toDate()
-                                          : startedAtValue instanceof Date
-                                          ? startedAtValue
-                                          : null;
-                                      const completedTasksList = Array.isArray(
-                                        session?.completedTasks
-                                      )
-                                        ? session.completedTasks.filter(
+                                        ? summary.lastTaskList.filter(
                                             (task) =>
-                                              typeof task === "string" && task.trim()
+                                              typeof task === "string" &&
+                                              task.trim()
                                           )
                                         : [];
-                                      const incompletedTasksList = Array.isArray(
-                                        session?.incompletedTasks
+                                      const activeTaskList = Array.isArray(
+                                        summary.activeTaskList
                                       )
-                                        ? session.incompletedTasks.filter(
+                                        ? summary.activeTaskList.filter(
                                             (task) =>
-                                              typeof task === "string" && task.trim()
+                                              typeof task === "string" &&
+                                              task.trim()
                                           )
                                         : [];
-                                      const allTasksList = Array.isArray(
-                                        session?.tasks
-                                      )
-                                        ? session.tasks.filter(
-                                            (task) =>
-                                              typeof task === "string" && task.trim()
-                                          )
-                                        : [];
-                                      const signalScoreValue =
-                                        typeof session?.signalScore === "number"
-                                          ? Math.round(session.signalScore)
-                                          : session?.signalScore !== undefined
-                                          ? Number(session.signalScore)
-                                          : null;
-                                      return {
-                                        sessionId,
-                                        finishedAt: finishedAtDate,
-                                        startedAt: startedAtDate,
-                                        completedTasks: completedTasksList,
-                                        incompletedTasks: incompletedTasksList,
-                                        tasks: allTasksList,
-                                        signalScore:
-                                          signalScoreValue !== null &&
-                                          !Number.isNaN(signalScoreValue)
-                                            ? signalScoreValue
-                                            : null,
-                                        status:
-                                          typeof session?.status === "string"
-                                            ? session.status
-                                            : "",
-                                      };
-                                    }
-                                  );
-                                  sessionEntries.sort(
-                                    (a, b) =>
-                                      (b.finishedAt?.getTime?.() || 0) -
-                                      (a.finishedAt?.getTime?.() || 0)
-                                  );
-                                  const hasSessionHistory = sessionEntries.length > 0;
-                                  const completedPreview =
-                                    lastCompletedTasks.slice(0, 5);
-                                  const incompletedPreview =
-                                    lastIncompletedTasks.slice(0, 5);
-                                  const moreCompleted =
-                                    lastCompletedTasks.length -
-                                    completedPreview.length;
-                                  const moreIncompleted =
-                                    lastIncompletedTasks.length -
-                                    incompletedPreview.length;
-                                  const hasLastTaskDetails =
-                                    !hasSessionHistory &&
-                                    (completedPreview.length > 0 ||
-                                      incompletedPreview.length > 0 ||
-                                      lastTaskList.length > 0);
-                                  const activeTasksPreview =
-                                    activeTaskList.slice(0, 5);
-                                  const moreActiveTasks =
-                                    activeTaskList.length -
-                                    activeTasksPreview.length;
-                                  const showActiveTaskList =
-                                    activeTaskCount > 0 &&
-                                    activeTasksPreview.length > 0;
-                                  const hasSharedUpdate =
-                                    averageSignal !== null ||
-                                    lastTaskSignal !== null ||
-                                    totalSignalScore > 0 ||
-                                    activeTaskCount > 0 ||
-                                    Boolean(summary.lastTaskStatus) ||
-                                    hasSessionHistory ||
-                                    hasLastTaskDetails;
+                                      const teamSessionsRaw =
+                                        summary.teamSessions &&
+                                        typeof summary.teamSessions ===
+                                          "object" &&
+                                        !Array.isArray(summary.teamSessions)
+                                          ? Object.entries(summary.teamSessions)
+                                          : [];
+                                      const sessionEntries =
+                                        teamSessionsRaw.map(
+                                          ([sessionId, session]) => {
+                                            const finishedAtValue =
+                                              session?.finishedAt;
+                                            const startedAtValue =
+                                              session?.startedAt;
+                                            const finishedAtDate =
+                                              finishedAtValue &&
+                                              typeof finishedAtValue.toDate ===
+                                                "function"
+                                                ? finishedAtValue.toDate()
+                                                : finishedAtValue instanceof
+                                                  Date
+                                                ? finishedAtValue
+                                                : null;
+                                            const startedAtDate =
+                                              startedAtValue &&
+                                              typeof startedAtValue.toDate ===
+                                                "function"
+                                                ? startedAtValue.toDate()
+                                                : startedAtValue instanceof Date
+                                                ? startedAtValue
+                                                : null;
+                                            const completedTasksList =
+                                              Array.isArray(
+                                                session?.completedTasks
+                                              )
+                                                ? session.completedTasks.filter(
+                                                    (task) =>
+                                                      typeof task ===
+                                                        "string" && task.trim()
+                                                  )
+                                                : [];
+                                            const incompletedTasksList =
+                                              Array.isArray(
+                                                session?.incompletedTasks
+                                              )
+                                                ? session.incompletedTasks.filter(
+                                                    (task) =>
+                                                      typeof task ===
+                                                        "string" && task.trim()
+                                                  )
+                                                : [];
+                                            const allTasksList = Array.isArray(
+                                              session?.tasks
+                                            )
+                                              ? session.tasks.filter(
+                                                  (task) =>
+                                                    typeof task === "string" &&
+                                                    task.trim()
+                                                )
+                                              : [];
+                                            const signalScoreValue =
+                                              typeof session?.signalScore ===
+                                              "number"
+                                                ? Math.round(
+                                                    session.signalScore
+                                                  )
+                                                : session?.signalScore !==
+                                                  undefined
+                                                ? Number(session.signalScore)
+                                                : null;
+                                            return {
+                                              sessionId,
+                                              finishedAt: finishedAtDate,
+                                              startedAt: startedAtDate,
+                                              completedTasks:
+                                                completedTasksList,
+                                              incompletedTasks:
+                                                incompletedTasksList,
+                                              tasks: allTasksList,
+                                              signalScore:
+                                                signalScoreValue !== null &&
+                                                !Number.isNaN(signalScoreValue)
+                                                  ? signalScoreValue
+                                                  : null,
+                                              status:
+                                                typeof session?.status ===
+                                                "string"
+                                                  ? session.status
+                                                  : "",
+                                            };
+                                          }
+                                        );
+                                      sessionEntries.sort(
+                                        (a, b) =>
+                                          (b.finishedAt?.getTime?.() || 0) -
+                                          (a.finishedAt?.getTime?.() || 0)
+                                      );
+                                      const hasSessionHistory =
+                                        sessionEntries.length > 0;
+                                      const completedPreview =
+                                        lastCompletedTasks.slice(0, 5);
+                                      const incompletedPreview =
+                                        lastIncompletedTasks.slice(0, 5);
+                                      const moreCompleted =
+                                        lastCompletedTasks.length -
+                                        completedPreview.length;
+                                      const moreIncompleted =
+                                        lastIncompletedTasks.length -
+                                        incompletedPreview.length;
+                                      const hasLastTaskDetails =
+                                        !hasSessionHistory &&
+                                        (completedPreview.length > 0 ||
+                                          incompletedPreview.length > 0 ||
+                                          lastTaskList.length > 0);
+                                      const activeTasksPreview =
+                                        activeTaskList.slice(0, 5);
+                                      const moreActiveTasks =
+                                        activeTaskList.length -
+                                        activeTasksPreview.length;
+                                      const showActiveTaskList =
+                                        activeTaskCount > 0 &&
+                                        activeTasksPreview.length > 0;
+                                      const hasSharedUpdate =
+                                        averageSignal !== null ||
+                                        lastTaskSignal !== null ||
+                                        totalSignalScore > 0 ||
+                                        activeTaskCount > 0 ||
+                                        Boolean(summary.lastTaskStatus) ||
+                                        hasSessionHistory ||
+                                        hasLastTaskDetails;
 
-                                  return (
-                                    <AccordionItem
-                                      key={member}
-                                      border="none"
-                                      mt={memberIndex === 0 ? 0 : 2}
-                                    >
-                                      <Box
-                                        borderWidth="1px"
-                                        borderRadius="md"
-                                        borderColor="gray.700"
-                                        overflow="hidden"
-                                      >
-                                        <h4>
-                                          <AccordionButton
-                                            px={3}
-                                            py={2}
-                                            _expanded={{ bg: "gray.900", color: "white" }}
+                                      return (
+                                        <AccordionItem
+                                          key={member}
+                                          border="none"
+                                          mt={memberIndex === 0 ? 0 : 2}
+                                        >
+                                          <Box
+                                            borderWidth="1px"
+                                            borderRadius="md"
+                                            borderColor="gray.700"
+                                            overflow="hidden"
                                           >
-                                            <Box flex="1" textAlign="left">
-                                              <HStack justify="space-between" align="center">
-                                                <Text
-                                                  fontWeight="semibold"
-                                                  fontSize="sm"
-                                                  wordBreak="break-all"
-                                                >
-                                                  {getDisplayName(member)}
-                                                </Text>
-                                                {member === team.owner && (
-                                                  <Tag
-                                                    size="sm"
-                                                    colorScheme="purple"
-                                                    borderRadius="full"
-                                                  >
-                                                    <TagLabel>Owner</TagLabel>
-                                                  </Tag>
-                                                )}
-                                              </HStack>
-                                            </Box>
-                                            <AccordionIcon />
-                                          </AccordionButton>
-                                        </h4>
-                                        <AccordionPanel px={3} pb={3} pt={2}>
-                                          {hasSharedUpdate ? (
-                                            <VStack align="stretch" spacing={1}>
-                                          <HStack justify="space-between">
-                                            <Text fontSize="xs" color="gray.500">
-                                              Total signal
-                                            </Text>
-                                            <Text fontSize="sm" fontWeight="medium">
-                                              {totalSignalSessions > 0
-                                                ? Math.round(totalSignalScore)
-                                                : "—"}
-                                            </Text>
-                                          </HStack>
-                                          <HStack justify="space-between">
-                                            <Text fontSize="xs" color="gray.500">
-                                              Avg task signal
-                                            </Text>
-                                            <Text fontSize="sm" fontWeight="medium">
-                                              {averageSignal !== null
-                                                ? `${averageSignal}%`
-                                                : "—"}
-                                            </Text>
-                                          </HStack>
-                                          <HStack justify="space-between">
-                                            <Text fontSize="xs" color="gray.500">
-                                              Last task signal
-                                            </Text>
-                                            <Text fontSize="sm" fontWeight="medium">
-                                              {lastTaskSignal !== null
-                                                ? `${Math.round(lastTaskSignal)}%`
-                                                : "—"}
-                                            </Text>
-                                          </HStack>
-                                          {totalTasksCount > 0 && (
-                                            <Text fontSize="xs" color="gray.500">
-                                              Last session: {completedCount || 0} of {totalTasksCount} tasks completed
-                                            </Text>
-                                          )}
-                                          {summary.lastTaskStatus && (
-                                            <Text fontSize="xs" color="gray.400" mt={1}>
-                                              “{summary.lastTaskStatus}”
-                                            </Text>
-                                          )}
-                                          {hasSessionHistory ? (
-                                            <Box mt={2}>
-                                              <Text
-                                                fontSize="xs"
-                                                color="gray.500"
-                                                textTransform="uppercase"
-                                                letterSpacing="wide"
+                                            <h4>
+                                              <AccordionButton
+                                                px={3}
+                                                py={2}
+                                                _expanded={{
+                                                  bg: "gray.900",
+                                                  color: "white",
+                                                }}
                                               >
-                                                Session history
-                                              </Text>
-                                              <Accordion allowMultiple reduceMotion mt={1}>
-                                                {sessionEntries.map((session, index) => {
-                                                  const hasCompleted =
-                                                    session.completedTasks.length > 0;
-                                                  const hasIncompleted =
-                                                    session.incompletedTasks.length > 0;
-                                                  const fallbackTasks =
-                                                    !hasCompleted &&
-                                                    !hasIncompleted &&
-                                                    session.tasks.length > 0
-                                                      ? session.tasks
-                                                      : [];
-                                                  const timestampLabel =
-                                                    session.finishedAt instanceof Date
-                                                      ? session.finishedAt.toLocaleString()
-                                                      : `Session ${index + 1}`;
-                                                  const totalSessionTasks = session.tasks.length
-                                                    ? session.tasks.length
-                                                    : session.completedTasks.length +
-                                                      session.incompletedTasks.length;
-                                                  const completionSummary =
-                                                    totalSessionTasks > 0
-                                                      ? `Completed ${session.completedTasks.length} of ${totalSessionTasks}`
-                                                      : null;
-                                                  return (
-                                                    <AccordionItem
-                                                      key={`session-${member}-${session.sessionId}`}
-                                                      border="none"
-                                                      mt={index === 0 ? 0 : 2}
+                                                <Box flex="1" textAlign="left">
+                                                  <HStack
+                                                    justify="space-between"
+                                                    align="center"
+                                                  >
+                                                    <Text
+                                                      fontWeight="semibold"
+                                                      fontSize="sm"
+                                                      wordBreak="break-all"
                                                     >
-                                                      <Box
-                                                        borderWidth="1px"
-                                                        borderRadius="md"
-                                                        borderColor="gray.700"
-                                                        overflow="hidden"
+                                                      {getDisplayName(member)}
+                                                    </Text>
+                                                    {member === team.owner && (
+                                                      <Tag
+                                                        size="sm"
+                                                        colorScheme="purple"
+                                                        borderRadius="full"
                                                       >
-                                                        <h4>
-                                                          <AccordionButton
-                                                            px={3}
-                                                            py={2}
-                                                            _expanded={{ bg: "gray.800", color: "white" }}
-                                                          >
-                                                            <Box flex="1" textAlign="left">
-                                                              <Text
-                                                                fontSize="xs"
-                                                                fontWeight="semibold"
-                                                                color="gray.500"
+                                                        <TagLabel>
+                                                          Owner
+                                                        </TagLabel>
+                                                      </Tag>
+                                                    )}
+                                                  </HStack>
+                                                </Box>
+                                                <AccordionIcon />
+                                              </AccordionButton>
+                                            </h4>
+                                            <AccordionPanel
+                                              px={3}
+                                              pb={3}
+                                              pt={2}
+                                            >
+                                              {hasSharedUpdate ? (
+                                                <VStack
+                                                  align="stretch"
+                                                  spacing={1}
+                                                >
+                                                  <HStack justify="space-between">
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.500"
+                                                    >
+                                                      Total signal
+                                                    </Text>
+                                                    <Text
+                                                      fontSize="sm"
+                                                      fontWeight="medium"
+                                                    >
+                                                      {totalSignalSessions > 0
+                                                        ? Math.round(
+                                                            totalSignalScore
+                                                          )
+                                                        : "—"}
+                                                    </Text>
+                                                  </HStack>
+                                                  <HStack justify="space-between">
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.500"
+                                                    >
+                                                      Avg task signal
+                                                    </Text>
+                                                    <Text
+                                                      fontSize="sm"
+                                                      fontWeight="medium"
+                                                    >
+                                                      {averageSignal !== null
+                                                        ? `${averageSignal}%`
+                                                        : "—"}
+                                                    </Text>
+                                                  </HStack>
+                                                  <HStack justify="space-between">
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.500"
+                                                    >
+                                                      Last task signal
+                                                    </Text>
+                                                    <Text
+                                                      fontSize="sm"
+                                                      fontWeight="medium"
+                                                    >
+                                                      {lastTaskSignal !== null
+                                                        ? `${Math.round(
+                                                            lastTaskSignal
+                                                          )}%`
+                                                        : "—"}
+                                                    </Text>
+                                                  </HStack>
+                                                  {totalTasksCount > 0 && (
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.500"
+                                                    >
+                                                      Last session:{" "}
+                                                      {completedCount || 0} of{" "}
+                                                      {totalTasksCount} tasks
+                                                      completed
+                                                    </Text>
+                                                  )}
+                                                  {summary.lastTaskStatus && (
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.400"
+                                                      mt={1}
+                                                    >
+                                                      “{summary.lastTaskStatus}”
+                                                    </Text>
+                                                  )}
+                                                  {hasSessionHistory ? (
+                                                    <Box mt={2}>
+                                                      <Text
+                                                        fontSize="xs"
+                                                        color="gray.500"
+                                                        textTransform="uppercase"
+                                                        letterSpacing="wide"
+                                                      >
+                                                        Session history
+                                                      </Text>
+                                                      <Accordion
+                                                        allowMultiple
+                                                        reduceMotion
+                                                        mt={1}
+                                                      >
+                                                        {sessionEntries.map(
+                                                          (session, index) => {
+                                                            const hasCompleted =
+                                                              session
+                                                                .completedTasks
+                                                                .length > 0;
+                                                            const hasIncompleted =
+                                                              session
+                                                                .incompletedTasks
+                                                                .length > 0;
+                                                            const fallbackTasks =
+                                                              !hasCompleted &&
+                                                              !hasIncompleted &&
+                                                              session.tasks
+                                                                .length > 0
+                                                                ? session.tasks
+                                                                : [];
+                                                            const timestampLabel =
+                                                              session.finishedAt instanceof
+                                                              Date
+                                                                ? session.finishedAt.toLocaleString()
+                                                                : `Session ${
+                                                                    index + 1
+                                                                  }`;
+                                                            const totalSessionTasks =
+                                                              session.tasks
+                                                                .length
+                                                                ? session.tasks
+                                                                    .length
+                                                                : session
+                                                                    .completedTasks
+                                                                    .length +
+                                                                  session
+                                                                    .incompletedTasks
+                                                                    .length;
+                                                            const completionSummary =
+                                                              totalSessionTasks >
+                                                              0
+                                                                ? `Completed ${session.completedTasks.length} of ${totalSessionTasks}`
+                                                                : null;
+                                                            return (
+                                                              <AccordionItem
+                                                                key={`session-${member}-${session.sessionId}`}
+                                                                border="none"
+                                                                mt={
+                                                                  index === 0
+                                                                    ? 0
+                                                                    : 2
+                                                                }
                                                               >
-                                                                {timestampLabel}
-                                                              </Text>
-                                                              <HStack spacing={3} mt={1} flexWrap="wrap">
-                                                                {session.signalScore !== null && (
-                                                                  <Text fontSize="xs" color="green.300">
-                                                                    {session.signalScore}% signal
-                                                                  </Text>
-                                                                )}
-                                                                {completionSummary && (
-                                                                  <Text fontSize="xs" color="gray.400">
-                                                                    {completionSummary}
-                                                                  </Text>
-                                                                )}
-                                                              </HStack>
-                                                            </Box>
-                                                            <AccordionIcon />
-                                                          </AccordionButton>
-                                                        </h4>
-                                                        <AccordionPanel px={3} pb={3} pt={2}>
-                                                          {session.status && (
-                                                            <Text fontSize="xs" color="gray.400" mb={2}>
-                                                              “{session.status}”
-                                                            </Text>
-                                                          )}
-                                                          {hasCompleted && (
-                                                            <Box mt={2}>
+                                                                <Box
+                                                                  borderWidth="1px"
+                                                                  borderRadius="md"
+                                                                  borderColor="gray.700"
+                                                                  overflow="hidden"
+                                                                >
+                                                                  <h4>
+                                                                    <AccordionButton
+                                                                      px={3}
+                                                                      py={2}
+                                                                      _expanded={{
+                                                                        bg: "gray.800",
+                                                                        color:
+                                                                          "white",
+                                                                      }}
+                                                                    >
+                                                                      <Box
+                                                                        flex="1"
+                                                                        textAlign="left"
+                                                                      >
+                                                                        <Text
+                                                                          fontSize="xs"
+                                                                          fontWeight="semibold"
+                                                                          color="gray.500"
+                                                                        >
+                                                                          {
+                                                                            timestampLabel
+                                                                          }
+                                                                        </Text>
+                                                                        <HStack
+                                                                          spacing={
+                                                                            3
+                                                                          }
+                                                                          mt={1}
+                                                                          flexWrap="wrap"
+                                                                        >
+                                                                          {session.signalScore !==
+                                                                            null && (
+                                                                            <Text
+                                                                              fontSize="xs"
+                                                                              color="green.300"
+                                                                            >
+                                                                              {
+                                                                                session.signalScore
+                                                                              }
+                                                                              %
+                                                                              signal
+                                                                            </Text>
+                                                                          )}
+                                                                          {completionSummary && (
+                                                                            <Text
+                                                                              fontSize="xs"
+                                                                              color="gray.400"
+                                                                            >
+                                                                              {
+                                                                                completionSummary
+                                                                              }
+                                                                            </Text>
+                                                                          )}
+                                                                        </HStack>
+                                                                      </Box>
+                                                                      <AccordionIcon />
+                                                                    </AccordionButton>
+                                                                  </h4>
+                                                                  <AccordionPanel
+                                                                    px={3}
+                                                                    pb={3}
+                                                                    pt={2}
+                                                                  >
+                                                                    {session.status && (
+                                                                      <Text
+                                                                        fontSize="xs"
+                                                                        color="gray.400"
+                                                                        mb={2}
+                                                                      >
+                                                                        “
+                                                                        {
+                                                                          session.status
+                                                                        }
+                                                                        ”
+                                                                      </Text>
+                                                                    )}
+                                                                    {hasCompleted && (
+                                                                      <Box
+                                                                        mt={2}
+                                                                      >
+                                                                        <Text
+                                                                          fontSize="xs"
+                                                                          color="green.300"
+                                                                          textTransform="uppercase"
+                                                                          letterSpacing="wide"
+                                                                        >
+                                                                          Completed
+                                                                        </Text>
+                                                                        <VStack
+                                                                          align="stretch"
+                                                                          spacing={
+                                                                            1
+                                                                          }
+                                                                          mt={1}
+                                                                        >
+                                                                          {session.completedTasks.map(
+                                                                            (
+                                                                              task,
+                                                                              taskIndex
+                                                                            ) => (
+                                                                              <Text
+                                                                                key={`session-${session.sessionId}-completed-${taskIndex}`}
+                                                                                fontSize="xs"
+                                                                                color="gray.200"
+                                                                              >
+                                                                                {
+                                                                                  task
+                                                                                }
+                                                                              </Text>
+                                                                            )
+                                                                          )}
+                                                                        </VStack>
+                                                                      </Box>
+                                                                    )}
+                                                                    {hasIncompleted && (
+                                                                      <Box
+                                                                        mt={2}
+                                                                      >
+                                                                        <Text
+                                                                          fontSize="xs"
+                                                                          color="orange.300"
+                                                                          textTransform="uppercase"
+                                                                          letterSpacing="wide"
+                                                                        >
+                                                                          Still
+                                                                          working
+                                                                        </Text>
+                                                                        <VStack
+                                                                          align="stretch"
+                                                                          spacing={
+                                                                            1
+                                                                          }
+                                                                          mt={1}
+                                                                        >
+                                                                          {session.incompletedTasks.map(
+                                                                            (
+                                                                              task,
+                                                                              taskIndex
+                                                                            ) => (
+                                                                              <Text
+                                                                                key={`session-${session.sessionId}-incompleted-${taskIndex}`}
+                                                                                fontSize="xs"
+                                                                                color="gray.200"
+                                                                              >
+                                                                                {
+                                                                                  task
+                                                                                }
+                                                                              </Text>
+                                                                            )
+                                                                          )}
+                                                                        </VStack>
+                                                                      </Box>
+                                                                    )}
+                                                                    {fallbackTasks.length >
+                                                                      0 && (
+                                                                      <Box
+                                                                        mt={2}
+                                                                      >
+                                                                        <Text
+                                                                          fontSize="xs"
+                                                                          color="gray.500"
+                                                                          textTransform="uppercase"
+                                                                          letterSpacing="wide"
+                                                                        >
+                                                                          Tasks
+                                                                        </Text>
+                                                                        <VStack
+                                                                          align="stretch"
+                                                                          spacing={
+                                                                            1
+                                                                          }
+                                                                          mt={1}
+                                                                        >
+                                                                          {fallbackTasks.map(
+                                                                            (
+                                                                              task,
+                                                                              taskIndex
+                                                                            ) => (
+                                                                              <Text
+                                                                                key={`session-${session.sessionId}-task-${taskIndex}`}
+                                                                                fontSize="xs"
+                                                                                color="gray.200"
+                                                                              >
+                                                                                {
+                                                                                  task
+                                                                                }
+                                                                              </Text>
+                                                                            )
+                                                                          )}
+                                                                        </VStack>
+                                                                      </Box>
+                                                                    )}
+                                                                  </AccordionPanel>
+                                                                </Box>
+                                                              </AccordionItem>
+                                                            );
+                                                          }
+                                                        )}
+                                                      </Accordion>
+                                                    </Box>
+                                                  ) : hasLastTaskDetails ? (
+                                                    <Box mt={2}>
+                                                      <Text
+                                                        fontSize="xs"
+                                                        color="gray.500"
+                                                        textTransform="uppercase"
+                                                        letterSpacing="wide"
+                                                      >
+                                                        Last session tasks
+                                                      </Text>
+                                                      <VStack
+                                                        align="stretch"
+                                                        spacing={1}
+                                                        mt={1}
+                                                      >
+                                                        {completedPreview.map(
+                                                          (task, index) => (
+                                                            <HStack
+                                                              key={`completed-${member}-${index}`}
+                                                              align="flex-start"
+                                                              spacing={2}
+                                                            >
                                                               <Text
                                                                 fontSize="xs"
                                                                 color="green.300"
-                                                                textTransform="uppercase"
-                                                                letterSpacing="wide"
+                                                                mt="1px"
                                                               >
-                                                                Completed
+                                                                ✓
                                                               </Text>
-                                                              <VStack align="stretch" spacing={1} mt={1}>
-                                                                {session.completedTasks.map((task, taskIndex) => (
-                                                                  <Text
-                                                                    key={`session-${session.sessionId}-completed-${taskIndex}`}
-                                                                    fontSize="xs"
-                                                                    color="gray.200"
-                                                                  >
-                                                                    {task}
-                                                                  </Text>
-                                                                ))}
-                                                              </VStack>
-                                                            </Box>
-                                                          )}
-                                                          {hasIncompleted && (
-                                                            <Box mt={2}>
+                                                              <Text
+                                                                fontSize="xs"
+                                                                color="gray.200"
+                                                              >
+                                                                {task}
+                                                              </Text>
+                                                            </HStack>
+                                                          )
+                                                        )}
+                                                        {moreCompleted > 0 && (
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="green.200"
+                                                          >
+                                                            +{moreCompleted}{" "}
+                                                            more completed
+                                                          </Text>
+                                                        )}
+                                                        {incompletedPreview.map(
+                                                          (task, index) => (
+                                                            <HStack
+                                                              key={`incompleted-${member}-${index}`}
+                                                              align="flex-start"
+                                                              spacing={2}
+                                                            >
                                                               <Text
                                                                 fontSize="xs"
                                                                 color="orange.300"
-                                                                textTransform="uppercase"
-                                                                letterSpacing="wide"
+                                                                mt="1px"
                                                               >
-                                                                Still working
+                                                                •
                                                               </Text>
-                                                              <VStack align="stretch" spacing={1} mt={1}>
-                                                                {session.incompletedTasks.map((task, taskIndex) => (
-                                                                  <Text
-                                                                    key={`session-${session.sessionId}-incompleted-${taskIndex}`}
-                                                                    fontSize="xs"
-                                                                    color="gray.200"
-                                                                  >
-                                                                    {task}
-                                                                  </Text>
-                                                                ))}
-                                                              </VStack>
-                                                            </Box>
-                                                          )}
-                                                          {fallbackTasks.length > 0 && (
-                                                            <Box mt={2}>
                                                               <Text
                                                                 fontSize="xs"
-                                                                color="gray.500"
-                                                                textTransform="uppercase"
-                                                                letterSpacing="wide"
+                                                                color="gray.200"
                                                               >
-                                                                Tasks
+                                                                {task}
                                                               </Text>
-                                                              <VStack align="stretch" spacing={1} mt={1}>
-                                                                {fallbackTasks.map((task, taskIndex) => (
-                                                                  <Text
-                                                                    key={`session-${session.sessionId}-task-${taskIndex}`}
-                                                                    fontSize="xs"
-                                                                    color="gray.200"
-                                                                  >
-                                                                    {task}
-                                                                  </Text>
-                                                                ))}
-                                                              </VStack>
-                                                            </Box>
+                                                            </HStack>
+                                                          )
+                                                        )}
+                                                        {moreIncompleted >
+                                                          0 && (
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="orange.200"
+                                                          >
+                                                            +{moreIncompleted}{" "}
+                                                            more to finish
+                                                          </Text>
+                                                        )}
+                                                        {lastTaskList.length >
+                                                          0 &&
+                                                          completedPreview.length ===
+                                                            0 &&
+                                                          incompletedPreview.length ===
+                                                            0 && (
+                                                            <VStack
+                                                              align="stretch"
+                                                              spacing={1}
+                                                            >
+                                                              {lastTaskList
+                                                                .slice(0, 5)
+                                                                .map(
+                                                                  (
+                                                                    task,
+                                                                    index
+                                                                  ) => (
+                                                                    <Text
+                                                                      key={`lasttask-${member}-${index}`}
+                                                                      fontSize="xs"
+                                                                      color="gray.200"
+                                                                    >
+                                                                      {task}
+                                                                    </Text>
+                                                                  )
+                                                                )}
+                                                              {lastTaskList.length >
+                                                                5 && (
+                                                                <Text
+                                                                  fontSize="xs"
+                                                                  color="gray.300"
+                                                                >
+                                                                  +
+                                                                  {lastTaskList.length -
+                                                                    5}{" "}
+                                                                  more
+                                                                </Text>
+                                                              )}
+                                                            </VStack>
                                                           )}
-                                                        </AccordionPanel>
-                                                      </Box>
-                                                    </AccordionItem>
-                                                  );
-                                                })}
-                                              </Accordion>
-                                            </Box>
-                                          ) : hasLastTaskDetails ? (
-                                            <Box mt={2}>
-                                              <Text
-                                                fontSize="xs"
-                                                color="gray.500"
-                                                textTransform="uppercase"
-                                                letterSpacing="wide"
-                                              >
-                                                Last session tasks
-                                              </Text>
-                                              <VStack align="stretch" spacing={1} mt={1}>
-                                                {completedPreview.map((task, index) => (
-                                                  <HStack
-                                                    key={`completed-${member}-${index}`}
-                                                    align="flex-start"
-                                                    spacing={2}
-                                                  >
-                                                    <Text fontSize="xs" color="green.300" mt="1px">
-                                                      ✓
-                                                    </Text>
-                                                    <Text fontSize="xs" color="gray.200">
-                                                      {task}
-                                                    </Text>
-                                                  </HStack>
-                                                ))}
-                                                {moreCompleted > 0 && (
-                                                  <Text fontSize="xs" color="green.200">
-                                                    +{moreCompleted} more completed
-                                                  </Text>
-                                                )}
-                                                {incompletedPreview.map((task, index) => (
-                                                  <HStack
-                                                    key={`incompleted-${member}-${index}`}
-                                                    align="flex-start"
-                                                    spacing={2}
-                                                  >
-                                                    <Text fontSize="xs" color="orange.300" mt="1px">
-                                                      •
-                                                    </Text>
-                                                    <Text fontSize="xs" color="gray.200">
-                                                      {task}
-                                                    </Text>
-                                                  </HStack>
-                                                ))}
-                                                {moreIncompleted > 0 && (
-                                                  <Text fontSize="xs" color="orange.200">
-                                                    +{moreIncompleted} more to finish
-                                                  </Text>
-                                                )}
-                                                {lastTaskList.length > 0 &&
-                                                  completedPreview.length === 0 &&
-                                                  incompletedPreview.length === 0 && (
-                                                    <VStack align="stretch" spacing={1}>
-                                                      {lastTaskList.slice(0, 5).map((task, index) => (
+                                                      </VStack>
+                                                    </Box>
+                                                  ) : null}
+                                                  {showActiveTaskList ? (
+                                                    <Box mt={2}>
+                                                      <Text
+                                                        fontSize="xs"
+                                                        color="gray.500"
+                                                      >
+                                                        Currently working on
+                                                      </Text>
+                                                      <VStack
+                                                        align="stretch"
+                                                        spacing={1}
+                                                        mt={1}
+                                                      >
+                                                        {activeTasksPreview.map(
+                                                          (task, index) => (
+                                                            <HStack
+                                                              key={`active-${member}-${index}`}
+                                                              align="flex-start"
+                                                              spacing={2}
+                                                            >
+                                                              <Text
+                                                                fontSize="xs"
+                                                                color="cyan.300"
+                                                                mt="1px"
+                                                              >
+                                                                •
+                                                              </Text>
+                                                              <Text
+                                                                fontSize="xs"
+                                                                color="gray.200"
+                                                              >
+                                                                {task}
+                                                              </Text>
+                                                            </HStack>
+                                                          )
+                                                        )}
+                                                        {moreActiveTasks >
+                                                          0 && (
+                                                          <Text
+                                                            fontSize="xs"
+                                                            color="cyan.200"
+                                                          >
+                                                            +{moreActiveTasks}{" "}
+                                                            more tasks
+                                                          </Text>
+                                                        )}
+                                                      </VStack>
+                                                      {activeTaskStatus && (
                                                         <Text
-                                                          key={`lasttask-${member}-${index}`}
                                                           fontSize="xs"
-                                                          color="gray.200"
+                                                          color="gray.400"
+                                                          mt={1}
                                                         >
-                                                          {task}
-                                                        </Text>
-                                                      ))}
-                                                      {lastTaskList.length > 5 && (
-                                                        <Text fontSize="xs" color="gray.300">
-                                                          +{lastTaskList.length - 5} more
+                                                          Status:{" "}
+                                                          {activeTaskStatus}
                                                         </Text>
                                                       )}
-                                                    </VStack>
+                                                    </Box>
+                                                  ) : (
+                                                    activeTaskCount > 0 && (
+                                                      <Text
+                                                        fontSize="xs"
+                                                        color="gray.500"
+                                                        mt={1}
+                                                      >
+                                                        Currently working on{" "}
+                                                        {activeTaskCount}{" "}
+                                                        {activeTaskCount === 1
+                                                          ? "task"
+                                                          : "tasks"}
+                                                        {activeTaskStatus
+                                                          ? ` — ${activeTaskStatus}`
+                                                          : ""}
+                                                      </Text>
+                                                    )
                                                   )}
-                                              </VStack>
-                                            </Box>
-                                          ) : null}
-                                          {showActiveTaskList ? (
-                                            <Box mt={2}>
-                                              <Text fontSize="xs" color="gray.500">
-                                                Currently working on
-                                              </Text>
-                                              <VStack align="stretch" spacing={1} mt={1}>
-                                                {activeTasksPreview.map((task, index) => (
-                                                  <HStack
-                                                    key={`active-${member}-${index}`}
-                                                    align="flex-start"
-                                                    spacing={2}
-                                                  >
-                                                    <Text fontSize="xs" color="cyan.300" mt="1px">
-                                                      •
-                                                    </Text>
-                                                    <Text fontSize="xs" color="gray.200">
-                                                      {task}
-                                                    </Text>
-                                                  </HStack>
-                                                ))}
-                                                {moreActiveTasks > 0 && (
-                                                  <Text fontSize="xs" color="cyan.200">
-                                                    +{moreActiveTasks} more tasks
-                                                  </Text>
-                                                )}
-                                              </VStack>
-                                              {activeTaskStatus && (
-                                                <Text fontSize="xs" color="gray.400" mt={1}>
-                                                  Status: {activeTaskStatus}
+                                                </VStack>
+                                              ) : (
+                                                <Text
+                                                  fontSize="xs"
+                                                  color="gray.500"
+                                                  mt={2}
+                                                >
+                                                  No shared updates yet.
                                                 </Text>
                                               )}
-                                            </Box>
-                                          ) : (
-                                            activeTaskCount > 0 && (
-                                              <Text fontSize="xs" color="gray.500" mt={1}>
-                                                Currently working on {activeTaskCount}{" "}
-                                                {activeTaskCount === 1 ? "task" : "tasks"}
-                                                {activeTaskStatus
-                                                  ? ` — ${activeTaskStatus}`
-                                                  : ""}
-                                              </Text>
-                                            )
-                                          )}
-                                            </VStack>
-                                          ) : (
-                                            <Text fontSize="xs" color="gray.500" mt={2}>
-                                              No shared updates yet.
-                                            </Text>
-                                          )}
-                                        </AccordionPanel>
-                                      </Box>
-                                    </AccordionItem>
-                                  );
-                                })}
-                              </Accordion>
-                            </Box>
-                          )}
-                          {pending.length > 0 && (
-                            <Box mt={2}>
-                              <Text fontSize="sm" fontWeight="medium">
-                                Pending invites
-                              </Text>
-                              <Wrap mt={1} spacing={2}>
-                                {pending.map((invite) => (
-                                  <WrapItem key={invite}>
-                                    <Tag
-                                      size="sm"
-                                      borderRadius="full"
-                                      colorScheme="yellow"
-                                    >
-                                      <TagLabel>{getDisplayName(invite)}</TagLabel>
-                                    </Tag>
-                                  </WrapItem>
-                                ))}
-                              </Wrap>
-                            </Box>
-                          )}
-                          <HStack mt={3} spacing={2} flexWrap="wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              colorScheme="red"
-                              onClick={() => handleLeaveTeam(team.teamId)}
-                              isDisabled={team.role === "owner"}
-                              isLoading={!!teamActionLoading[team.teamId]}
-                            >
-                              {team.role === "owner"
-                                ? "Transfer ownership to leave"
-                                : "Leave team"}
-                            </Button>
-                            {team.role === "owner" && (
-                              <Button
-                                size="sm"
-                                colorScheme="red"
-                                onClick={() => handleDeleteTeam(team.teamId)}
-                                isLoading={!!teamActionLoading[team.teamId]}
-                              >
-                                Delete team
-                              </Button>
-                            )}
-                          </HStack>
+                                            </AccordionPanel>
+                                          </Box>
+                                        </AccordionItem>
+                                      );
+                                    })}
+                                  </Accordion>
+                                </Box>
+                              )}
+                              {pending.length > 0 && (
+                                <Box mt={2}>
+                                  <Text fontSize="sm" fontWeight="medium">
+                                    Pending invites
+                                  </Text>
+                                  <Wrap mt={1} spacing={2}>
+                                    {pending.map((invite) => (
+                                      <WrapItem key={invite}>
+                                        <Tag
+                                          size="sm"
+                                          borderRadius="full"
+                                          colorScheme="yellow"
+                                        >
+                                          <TagLabel>
+                                            {getDisplayName(invite)}
+                                          </TagLabel>
+                                        </Tag>
+                                      </WrapItem>
+                                    ))}
+                                  </Wrap>
+                                </Box>
+                              )}
+                              <HStack mt={3} spacing={2} flexWrap="wrap">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  colorScheme="red"
+                                  onClick={() => handleLeaveTeam(team.teamId)}
+                                  isDisabled={team.role === "owner"}
+                                  isLoading={!!teamActionLoading[team.teamId]}
+                                >
+                                  {team.role === "owner"
+                                    ? "Transfer ownership to leave"
+                                    : "Leave team"}
+                                </Button>
+                                {team.role === "owner" && (
+                                  <Button
+                                    size="sm"
+                                    colorScheme="red"
+                                    onClick={() =>
+                                      handleDeleteTeam(team.teamId)
+                                    }
+                                    isLoading={!!teamActionLoading[team.teamId]}
+                                  >
+                                    Delete team
+                                  </Button>
+                                )}
+                              </HStack>
                             </AccordionPanel>
                           </Box>
                         </AccordionItem>
