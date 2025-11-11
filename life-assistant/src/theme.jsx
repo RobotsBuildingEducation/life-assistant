@@ -17,16 +17,16 @@ const config = {
 };
 
 export const styles = {
-  global: (props) => ({
+  global: () => ({
     ":root": {
       "--brand-color": localStorage.getItem("theme_color") || "#000000",
       "--font-family":
         localStorage.getItem("theme_font") || "'Inter', sans-serif",
     },
     body: {
-      bg: mode("#ffffff", "#0d0d0d")(props),
-      color: mode("#000000", "#f5f5f5")(props),
-      backgroundColor: mode("#ffffff", "rgba(0,0,34)")(props),
+      bg: "bg.canvas",
+      color: "text.primary",
+      backgroundColor: "bg.canvas",
       fontFamily: "var(--font-family)",
     },
   }),
@@ -35,6 +35,30 @@ export const styles = {
 export const theme = extendTheme({
   config,
   styles,
+  semanticTokens: {
+    colors: {
+      "bg.canvas": {
+        default: "gray.50",
+        _dark: "gray.900",
+      },
+      "bg.surface": {
+        default: "white",
+        _dark: "gray.800",
+      },
+      "text.primary": {
+        default: "gray.800",
+        _dark: "gray.100",
+      },
+      "border.default": {
+        default: "gray.200",
+        _dark: "gray.700",
+      },
+      "shadow.focus": {
+        default: "rgba(26, 32, 44, 0.45)",
+        _dark: "rgba(226, 232, 240, 0.45)",
+      },
+    },
+  },
   fonts: {
     heading: "var(--font-family)",
     body: "var(--font-family)",
@@ -49,28 +73,62 @@ export const theme = extendTheme({
   components: {
     Button: {
       variants: {
-        solid: {
-          bg: "#000000",
-          color: "#ffffff",
-          _hover: { bg: "#1a1a1a" },
-        },
-        outline: {
-          borderColor: "#000000",
-          color: "#000000",
-          _hover: { bg: "#000000", color: "#ffffff" },
-        },
+        solid: (props) => ({
+          bg: mode("gray.900", "gray.100")(props),
+          color: mode("white", "gray.900")(props),
+          _hover: {
+            bg: mode("black", "gray.200")(props),
+          },
+          _active: {
+            bg: mode("gray.800", "gray.300")(props),
+          },
+        }),
+        outline: (props) => ({
+          borderColor: mode("gray.900", "gray.100")(props),
+          color: mode("gray.900", "gray.100")(props),
+          _hover: {
+            bg: mode("gray.900", "gray.100")(props),
+            color: mode("white", "gray.900")(props),
+          },
+        }),
       },
     },
     Input: {
       variants: {
-        outline: {
-          field: {
-            borderColor: "#000000",
-            _focus: {
-              borderColor: "#000000",
-              boxShadow: "0 0 0 1px #000000",
+        outline: (props) => {
+          const focusColor = mode("#1a202c", "#edf2f7")(props);
+          return {
+            field: {
+              borderColor: mode("gray.300", "gray.600")(props),
+              bg: mode("white", "gray.800")(props),
+              color: mode("gray.900", "gray.100")(props),
+              _placeholder: {
+                color: mode("gray.500", "gray.400")(props),
+              },
+              _focus: {
+                borderColor: mode("gray.900", "gray.100")(props),
+                boxShadow: `0 0 0 1px ${focusColor}`,
+              },
             },
-          },
+          };
+        },
+      },
+    },
+    Select: {
+      variants: {
+        outline: (props) => {
+          const focusColor = mode("#1a202c", "#edf2f7")(props);
+          return {
+            field: {
+              borderColor: mode("gray.300", "gray.600")(props),
+              bg: mode("white", "gray.800")(props),
+              color: mode("gray.900", "gray.100")(props),
+              _focus: {
+                borderColor: mode("gray.900", "gray.100")(props),
+                boxShadow: `0 0 0 1px ${focusColor}`,
+              },
+            },
+          };
         },
       },
     },

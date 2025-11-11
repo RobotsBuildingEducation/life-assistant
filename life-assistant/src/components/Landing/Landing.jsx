@@ -10,6 +10,7 @@ import {
   Input,
   Button,
   Text,
+  useColorMode,
 } from "@chakra-ui/react";
 
 import { useDecentralizedIdentity } from "../../hooks/useDecentralizedIdentity";
@@ -20,6 +21,7 @@ export const Landing = () => {
   const navigate = useNavigate();
   const [authField, setAuthField] = useState("");
   const [role, setRole] = useState("chores");
+  const { colorMode, toggleColorMode } = useColorMode();
 
   // define the cycle of roles in the same order as RoleCanvas
   const roles = [
@@ -75,7 +77,7 @@ export const Landing = () => {
 
   return (
     <>
-      <Box as="main" p={4} maxW="md" mx="auto" mt={24}>
+      <Box as="main" p={4} maxW="md" mx="auto">
         <VStack spacing={6} align="stretch">
           {/* RoleCanvas cycling through roles every 3s */}
           <div
@@ -84,14 +86,27 @@ export const Landing = () => {
               justifyContent: "center",
             }}
           >
-            <RoleCanvas role={role} width={200} height={200} color="#000" />
+            <RoleCanvas
+              role={role}
+              width={200}
+              height={200}
+              color={colorMode === "dark" ? "#FFF" : "#000"}
+            />
           </div>
           <Heading as="h2" size="lg" textAlign="center" p={0} m={0}>
             16Hours
           </Heading>
-          <Text textAlign="center" p={0} m={"-6"} mb={4}>
+          <Text textAlign="center" p={0} m={"-6"} mb={0}>
             Lock In & Focus On Your Goals
           </Text>
+
+          <Box>
+            <Text fontSize="xs">
+              Most people struggle with procrastination, focus and completing
+              tasks. 16 hours is an app to provide frameworks and tools to make
+              those things easier.
+            </Text>
+          </Box>
           <FormControl>
             <FormLabel>Enter a username or secret key</FormLabel>
             <Input
@@ -121,12 +136,6 @@ export const Landing = () => {
                 : authField}
             </Text>
           )}
-
-          <Box mt={4}>
-            Most people struggle with procrastination, focus and completing
-            tasks. 16 hours is an app to provide frameworks and tools to make
-            those things easier.
-          </Box>
 
           {errorMessage && (
             <Text color="red.500" fontSize="sm">

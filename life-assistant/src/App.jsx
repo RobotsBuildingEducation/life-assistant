@@ -42,9 +42,10 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  useColorMode,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FiDownload, FiBell, FiShield, FiCopy, FiKey } from "react-icons/fi";
-import { FaPalette } from "react-icons/fa";
 import { GiExitDoor } from "react-icons/gi";
 import { IoShareOutline, IoAppsOutline } from "react-icons/io5";
 import { IoIosMore } from "react-icons/io";
@@ -93,11 +94,6 @@ function App() {
     onClose: onInstallClose,
   } = useDisclosure();
   const {
-    isOpen: isThemeOpen,
-    onOpen: onThemeOpen,
-    onClose: onThemeClose,
-  } = useDisclosure();
-  const {
     isOpen: isNotificationsOpen,
     onOpen: onNotificationsOpen,
     onClose: onNotificationsClose,
@@ -118,9 +114,6 @@ function App() {
     onClose: onViewTeamsClose,
   } = useDisclosure();
 
-  const [selectedFont, setSelectedFont] = useState(
-    localStorage.getItem("theme_font") || "'Inter', sans-serif"
-  );
   const [currentNpub, setCurrentNpub] = useState(
     () => localStorage.getItem("local_npub") || ""
   );
@@ -134,6 +127,33 @@ function App() {
   const [teamDetails, setTeamDetails] = useState({});
   const [userNameLookup, setUserNameLookup] = useState({});
   const nameFetchInFlight = useRef(new Set());
+
+  const { colorMode, toggleColorMode } = useColorMode();
+  const menuButtonBg = useColorModeValue("white", "gray.800");
+  const menuButtonBorderColor = useColorModeValue("gray.300", "gray.600");
+  const menuButtonHoverBg = useColorModeValue("gray.100", "gray.700");
+  const menuButtonIconColor = useColorModeValue("gray.700", "gray.100");
+  const footerBg = useColorModeValue(
+    "rgba(255, 255, 255, 0.85)",
+    "rgba(26, 32, 44, 0.85)"
+  );
+  const footerBorderColor = useColorModeValue(
+    "border.default",
+    "border.default"
+  );
+  const footerTextColor = useColorModeValue("gray.800", "gray.100");
+  const footerShadow = useColorModeValue(
+    "0 -1px 1px rgba(0, 0, 0, 0.2)",
+    "0 -1px 1px rgba(0, 0, 0, 0.6)"
+  );
+  const viewTeamBg = useColorModeValue("white", "gray.700");
+  const viewTeamHoverBg = useColorModeValue("gray.50", "gray.600");
+  const viewTeamColor = useColorModeValue("gray.900", "gray.100");
+  const viewTeamBorderColor = useColorModeValue("gray.200", "gray.600");
+  const viewTeamShadow = useColorModeValue(
+    "0 0 0 3px rgba(72, 236, 151, 0.35)",
+    "0 0 0 3px rgba(72, 236, 151, 0.45)"
+  );
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
@@ -154,7 +174,6 @@ function App() {
               user.fontFamily
             );
             localStorage.setItem("theme_font", user.fontFamily);
-            setSelectedFont(user.fontFamily);
           }
           setNotificationsEnabled(!!user.notifications);
           if (user.step === "onboarding") {
@@ -208,7 +227,6 @@ function App() {
     const font = localStorage.getItem("theme_font");
     if (font) {
       document.documentElement.style.setProperty("--font-family", font);
-      setSelectedFont(font);
     }
   }, []);
 
@@ -293,39 +311,6 @@ function App() {
       } catch (error) {
         console.error("Error deleting FCM token:", error);
       }
-    }
-  };
-
-  const handleSendTestNotification = async () => {
-    try {
-      const token = await getToken(messaging, {
-        vapidKey:
-          "BPLqRrVM3iUvh90ENNZJbJA3FoRkvMql6iWtC4MJaHzhyz9uRTEitwEax9ot05_b6TPoCVnD-tlQtbeZFn1Z_Bg",
-      });
-      await fetch(
-        `https://us-central1-datachecking-7997c.cloudfunctions.net/sendTestNotification?token=${token}`
-      );
-    } catch (err) {
-      console.error("Test notification failed", err);
-    }
-  };
-
-  const updateThemeColor = (color) => {
-    document.documentElement.style.setProperty("--brand-color", color);
-    localStorage.setItem("theme_color", color);
-    const npub = localStorage.getItem("local_npub");
-    if (npub) {
-      updateUser(npub, { themeColor: color });
-    }
-  };
-
-  const updateThemeFont = (font) => {
-    document.documentElement.style.setProperty("--font-family", font);
-    localStorage.setItem("theme_font", font);
-    setSelectedFont(font);
-    const npub = localStorage.getItem("local_npub");
-    if (npub) {
-      updateUser(npub, { fontFamily: font });
     }
   };
 
@@ -772,10 +757,13 @@ function App() {
             aria-label="Open menu"
             icon={<IoAppsOutline />}
             onClick={onMenuOpen}
-            variant="ghost"
             size="lg"
-            backgroundColor="white"
-            border="1px solid black"
+            bg={menuButtonBg}
+            borderWidth="1px"
+            borderColor={menuButtonBorderColor}
+            color={menuButtonIconColor}
+            _hover={{ bg: menuButtonHoverBg }}
+            _active={{ bg: menuButtonHoverBg }}
           />
         </Box>
       )}
@@ -786,14 +774,14 @@ function App() {
           bottom={0}
           left={0}
           right={0}
-          // bg="white"
-          color="white"
+          bg={footerBg}
+          color={footerTextColor}
           borderTopWidth="1px"
-          borderColor="gray.700"
+          borderColor={footerBorderColor}
           backdropFilter="blur(2px)"
           py={3}
           px={4}
-          boxShadow="0 -1px 1 px rgba(0, 0, 0, 0.35)"
+          boxShadow={footerShadow}
           zIndex={1300}
         >
           <HStack spacing={3} justify="center">
@@ -802,15 +790,19 @@ function App() {
             </Button>
             <Button
               variant={hasPendingInvites ? "solid" : "outline"}
-              colorScheme={hasPendingInvites ? "pink" : "whiteAlpha"}
-              color="black"
+              colorScheme={hasPendingInvites ? "pink" : "gray"}
               onClick={onViewTeamsOpen}
-              bg="white"
-              boxShadow={
+              bg={hasPendingInvites ? undefined : viewTeamBg}
+              color={hasPendingInvites ? undefined : viewTeamColor}
+              borderColor={hasPendingInvites ? undefined : viewTeamBorderColor}
+              _hover={
                 hasPendingInvites
-                  ? "0 0 0 3px rgba(72, 236, 151, 0.4)"
-                  : undefined
+                  ? undefined
+                  : {
+                      bg: viewTeamHoverBg,
+                    }
               }
+              boxShadow={hasPendingInvites ? viewTeamShadow : undefined}
               fontWeight={hasPendingInvites ? "bold" : "normal"}
             >
               View team
@@ -827,6 +819,21 @@ function App() {
           <DrawerHeader>Menu</DrawerHeader>
           <DrawerBody>
             <VStack spacing={3} align="stretch">
+              <FormControl
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <FormLabel htmlFor="color-mode-toggle" mb="0">
+                  Dark mode
+                </FormLabel>
+                <Switch
+                  id="color-mode-toggle"
+                  isChecked={colorMode === "dark"}
+                  onChange={() => toggleColorMode()}
+                />
+              </FormControl>
+              <Divider />
               <Button
                 leftIcon={<FiCopy />}
                 justifyContent="flex-start"
@@ -861,17 +868,7 @@ function App() {
               >
                 Privacy
               </Button>
-              <Button
-                leftIcon={<FaPalette />}
-                justifyContent="flex-start"
-                variant="ghost"
-                onClick={() => {
-                  onMenuClose();
-                  onThemeOpen();
-                }}
-              >
-                Themes
-              </Button>
+
               <Button
                 leftIcon={<FiDownload />}
                 justifyContent="flex-start"
@@ -922,6 +919,7 @@ function App() {
           <DrawerHeader>Create a team</DrawerHeader>
           <DrawerBody>
             <VStack align="stretch" spacing={4} pb={6}>
+              <Text>hi</Text>
               <FormControl>
                 <FormLabel>Team name</FormLabel>
                 <Input
@@ -2052,67 +2050,6 @@ function App() {
                 }
               }}
             >
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      <Modal isOpen={isThemeOpen} onClose={onThemeClose} isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Choose Theme Color</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <HStack mb={4} justify="center">
-              {[
-                "#FFD6E8",
-                "#C9E4DE",
-                "#FFF1C1",
-                "#E0BBE4",
-                "#CDE7FF",
-                "#F2C6DE",
-              ].map((c) => (
-                <Button
-                  key={c}
-                  bg={c}
-                  _hover={{ bg: c }}
-                  onClick={() => updateThemeColor(c)}
-                  height="30px"
-                  width="30px"
-                  minW="30px"
-                  p={0}
-                  borderRadius="full"
-                />
-              ))}
-            </HStack>
-            Or pick your own color
-            <Input
-              borderWidth="0px"
-              type="color"
-              aria-label="Custom color"
-              onChange={(e) => updateThemeColor(e.target.value)}
-            />
-            <Text mt={4}>Choose Font</Text>
-            <Select
-              mt={2}
-              value={selectedFont}
-              onChange={(e) => updateThemeFont(e.target.value)}
-            >
-              <option value="'Inter', sans-serif">Inter</option>
-              <option value="'Montserrat', sans-serif">Montserrat</option>
-              <option value="'Poppins', sans-serif">Poppins</option>
-              <option value="'Fira Code', monospace">Fira Code</option>
-              <option value="'Courier New', monospace">Courier New</option>
-              <option value="'Roboto', sans-serif">Roboto</option>
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="'Times New Roman', serif">Times New Roman</option>
-              <option value="'Comic Sans MS', cursive">Comic Sans</option>
-              <option value="Georgia, serif">Georgia</option>
-            </Select>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" onMouseDown={onThemeClose}>
               Close
             </Button>
           </ModalFooter>
