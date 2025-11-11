@@ -1021,30 +1021,46 @@ function App() {
                 {activeTeams.length === 0 ? (
                   <Text color="gray.500">No active teams yet.</Text>
                 ) : (
-                  <VStack align="stretch" spacing={3}>
-                    {activeTeams.map((team) => {
+                  <Accordion allowMultiple reduceMotion>
+                    {activeTeams.map((team, teamIndex) => {
                       const detail = teamDetails[team.teamId] || {};
                       const members = detail.members || [];
                       const pending = detail.invites || [];
                       const memberSummaries = detail.memberData || {};
                       return (
-                        <Box
+                        <AccordionItem
                           key={team.id}
-                          borderWidth="1px"
-                          borderRadius="md"
-                          p={3}
+                          border="none"
+                          mt={teamIndex === 0 ? 0 : 2}
                         >
-                          <Text fontWeight="semibold">{team.name}</Text>
-                          <Text fontSize="sm" color="gray.500">
-                            Owner: {getDisplayName(team.owner)}
-                          </Text>
+                          <Box
+                            borderWidth="1px"
+                            borderRadius="md"
+                            overflow="hidden"
+                          >
+                            <h3>
+                              <AccordionButton
+                                px={3}
+                                py={2}
+                                _expanded={{ bg: "gray.800", color: "white" }}
+                              >
+                                <Box flex="1" textAlign="left">
+                                  <Text fontWeight="semibold">{team.name}</Text>
+                                  <Text fontSize="xs" color="gray.400" mt={1}>
+                                    Owner: {getDisplayName(team.owner)}
+                                  </Text>
+                                </Box>
+                                <AccordionIcon />
+                              </AccordionButton>
+                            </h3>
+                            <AccordionPanel px={3} pb={4} pt={2}>
                           {members.length > 0 && (
                             <Box mt={2}>
                               <Text fontSize="sm" fontWeight="medium">
                                 Members
                               </Text>
-                              <VStack mt={2} spacing={3} align="stretch">
-                                {members.map((member) => {
+                              <Accordion allowMultiple reduceMotion mt={2}>
+                                {members.map((member, memberIndex) => {
                                   const summary = memberSummaries[member] || {};
                                   const totalSignalScore = Number(
                                     summary.totalSignalScore ?? 0
@@ -1231,28 +1247,49 @@ function App() {
                                     hasLastTaskDetails;
 
                                   return (
-                                    <Box
+                                    <AccordionItem
                                       key={member}
-                                      borderWidth="1px"
-                                      borderRadius="md"
-                                      p={3}
+                                      border="none"
+                                      mt={memberIndex === 0 ? 0 : 2}
                                     >
-                                      <HStack justify="space-between" align="flex-start">
-                                        <Text
-                                          fontWeight="semibold"
-                                          fontSize="sm"
-                                          wordBreak="break-all"
-                                        >
-                                          {getDisplayName(member)}
-                                        </Text>
-                                        {member === team.owner && (
-                                          <Tag size="sm" colorScheme="purple" borderRadius="full">
-                                            <TagLabel>Owner</TagLabel>
-                                          </Tag>
-                                        )}
-                                      </HStack>
-                                      {hasSharedUpdate ? (
-                                        <VStack align="stretch" spacing={1} mt={2}>
+                                      <Box
+                                        borderWidth="1px"
+                                        borderRadius="md"
+                                        borderColor="gray.700"
+                                        overflow="hidden"
+                                      >
+                                        <h4>
+                                          <AccordionButton
+                                            px={3}
+                                            py={2}
+                                            _expanded={{ bg: "gray.900", color: "white" }}
+                                          >
+                                            <Box flex="1" textAlign="left">
+                                              <HStack justify="space-between" align="center">
+                                                <Text
+                                                  fontWeight="semibold"
+                                                  fontSize="sm"
+                                                  wordBreak="break-all"
+                                                >
+                                                  {getDisplayName(member)}
+                                                </Text>
+                                                {member === team.owner && (
+                                                  <Tag
+                                                    size="sm"
+                                                    colorScheme="purple"
+                                                    borderRadius="full"
+                                                  >
+                                                    <TagLabel>Owner</TagLabel>
+                                                  </Tag>
+                                                )}
+                                              </HStack>
+                                            </Box>
+                                            <AccordionIcon />
+                                          </AccordionButton>
+                                        </h4>
+                                        <AccordionPanel px={3} pb={3} pt={2}>
+                                          {hasSharedUpdate ? (
+                                            <VStack align="stretch" spacing={1}>
                                           <HStack justify="space-between">
                                             <Text fontSize="xs" color="gray.500">
                                               Total signal
@@ -1566,16 +1603,18 @@ function App() {
                                               </Text>
                                             )
                                           )}
-                                        </VStack>
-                                      ) : (
-                                        <Text fontSize="xs" color="gray.500" mt={2}>
-                                          No shared updates yet.
-                                        </Text>
-                                      )}
-                                    </Box>
+                                            </VStack>
+                                          ) : (
+                                            <Text fontSize="xs" color="gray.500" mt={2}>
+                                              No shared updates yet.
+                                            </Text>
+                                          )}
+                                        </AccordionPanel>
+                                      </Box>
+                                    </AccordionItem>
                                   );
                                 })}
-                              </VStack>
+                              </Accordion>
                             </Box>
                           )}
                           {pending.length > 0 && (
@@ -1622,10 +1661,12 @@ function App() {
                               </Button>
                             )}
                           </HStack>
-                        </Box>
+                            </AccordionPanel>
+                          </Box>
+                        </AccordionItem>
                       );
                     })}
-                  </VStack>
+                  </Accordion>
                 )}
               </Box>
             </VStack>
