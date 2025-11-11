@@ -37,6 +37,11 @@ import {
   Tag,
   TagLabel,
   TagCloseButton,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
 import { FiDownload, FiBell, FiShield, FiCopy, FiKey } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
@@ -1298,7 +1303,7 @@ function App() {
                                               >
                                                 Session history
                                               </Text>
-                                              <VStack align="stretch" spacing={2} mt={1}>
+                                              <Accordion allowMultiple reduceMotion mt={1}>
                                                 {sessionEntries.map((session, index) => {
                                                   const hasCompleted =
                                                     session.completedTasks.length > 0;
@@ -1314,105 +1319,137 @@ function App() {
                                                     session.finishedAt instanceof Date
                                                       ? session.finishedAt.toLocaleString()
                                                       : `Session ${index + 1}`;
+                                                  const totalSessionTasks = session.tasks.length
+                                                    ? session.tasks.length
+                                                    : session.completedTasks.length +
+                                                      session.incompletedTasks.length;
+                                                  const completionSummary =
+                                                    totalSessionTasks > 0
+                                                      ? `Completed ${session.completedTasks.length} of ${totalSessionTasks}`
+                                                      : null;
                                                   return (
-                                                    <Box
+                                                    <AccordionItem
                                                       key={`session-${member}-${session.sessionId}`}
-                                                      borderWidth="1px"
-                                                      borderRadius="md"
-                                                      p={2}
+                                                      border="none"
+                                                      mt={index === 0 ? 0 : 2}
                                                     >
-                                                      <HStack justify="space-between" align="flex-start">
-                                                        <Text
-                                                          fontSize="xs"
-                                                          fontWeight="semibold"
-                                                          color="gray.500"
-                                                        >
-                                                          {timestampLabel}
-                                                        </Text>
-                                                        {session.signalScore !== null && (
-                                                          <Text fontSize="xs" color="green.300">
-                                                            {session.signalScore}% signal
-                                                          </Text>
-                                                        )}
-                                                      </HStack>
-                                                      {session.status && (
-                                                        <Text fontSize="xs" color="gray.400" mt={1}>
-                                                          “{session.status}”
-                                                        </Text>
-                                                      )}
-                                                      {hasCompleted && (
-                                                        <Box mt={2}>
-                                                          <Text
-                                                            fontSize="xs"
-                                                            color="green.300"
-                                                            textTransform="uppercase"
-                                                            letterSpacing="wide"
+                                                      <Box
+                                                        borderWidth="1px"
+                                                        borderRadius="md"
+                                                        borderColor="gray.700"
+                                                        overflow="hidden"
+                                                      >
+                                                        <h4>
+                                                          <AccordionButton
+                                                            px={3}
+                                                            py={2}
+                                                            _expanded={{ bg: "gray.800", color: "white" }}
                                                           >
-                                                            Completed
-                                                          </Text>
-                                                          <VStack align="stretch" spacing={1} mt={1}>
-                                                            {session.completedTasks.map((task, taskIndex) => (
+                                                            <Box flex="1" textAlign="left">
                                                               <Text
-                                                                key={`session-${session.sessionId}-completed-${taskIndex}`}
                                                                 fontSize="xs"
-                                                                color="gray.200"
+                                                                fontWeight="semibold"
+                                                                color="gray.500"
                                                               >
-                                                                {task}
+                                                                {timestampLabel}
                                                               </Text>
-                                                            ))}
-                                                          </VStack>
-                                                        </Box>
-                                                      )}
-                                                      {hasIncompleted && (
-                                                        <Box mt={2}>
-                                                          <Text
-                                                            fontSize="xs"
-                                                            color="orange.300"
-                                                            textTransform="uppercase"
-                                                            letterSpacing="wide"
-                                                          >
-                                                            Still working
-                                                          </Text>
-                                                          <VStack align="stretch" spacing={1} mt={1}>
-                                                            {session.incompletedTasks.map((task, taskIndex) => (
+                                                              <HStack spacing={3} mt={1} flexWrap="wrap">
+                                                                {session.signalScore !== null && (
+                                                                  <Text fontSize="xs" color="green.300">
+                                                                    {session.signalScore}% signal
+                                                                  </Text>
+                                                                )}
+                                                                {completionSummary && (
+                                                                  <Text fontSize="xs" color="gray.400">
+                                                                    {completionSummary}
+                                                                  </Text>
+                                                                )}
+                                                              </HStack>
+                                                            </Box>
+                                                            <AccordionIcon />
+                                                          </AccordionButton>
+                                                        </h4>
+                                                        <AccordionPanel px={3} pb={3} pt={2}>
+                                                          {session.status && (
+                                                            <Text fontSize="xs" color="gray.400" mb={2}>
+                                                              “{session.status}”
+                                                            </Text>
+                                                          )}
+                                                          {hasCompleted && (
+                                                            <Box mt={2}>
                                                               <Text
-                                                                key={`session-${session.sessionId}-incompleted-${taskIndex}`}
                                                                 fontSize="xs"
-                                                                color="gray.200"
+                                                                color="green.300"
+                                                                textTransform="uppercase"
+                                                                letterSpacing="wide"
                                                               >
-                                                                {task}
+                                                                Completed
                                                               </Text>
-                                                            ))}
-                                                          </VStack>
-                                                        </Box>
-                                                      )}
-                                                      {fallbackTasks.length > 0 && (
-                                                        <Box mt={2}>
-                                                          <Text
-                                                            fontSize="xs"
-                                                            color="gray.500"
-                                                            textTransform="uppercase"
-                                                            letterSpacing="wide"
-                                                          >
-                                                            Tasks
-                                                          </Text>
-                                                          <VStack align="stretch" spacing={1} mt={1}>
-                                                            {fallbackTasks.map((task, taskIndex) => (
+                                                              <VStack align="stretch" spacing={1} mt={1}>
+                                                                {session.completedTasks.map((task, taskIndex) => (
+                                                                  <Text
+                                                                    key={`session-${session.sessionId}-completed-${taskIndex}`}
+                                                                    fontSize="xs"
+                                                                    color="gray.200"
+                                                                  >
+                                                                    {task}
+                                                                  </Text>
+                                                                ))}
+                                                              </VStack>
+                                                            </Box>
+                                                          )}
+                                                          {hasIncompleted && (
+                                                            <Box mt={2}>
                                                               <Text
-                                                                key={`session-${session.sessionId}-task-${taskIndex}`}
                                                                 fontSize="xs"
-                                                                color="gray.200"
+                                                                color="orange.300"
+                                                                textTransform="uppercase"
+                                                                letterSpacing="wide"
                                                               >
-                                                                {task}
+                                                                Still working
                                                               </Text>
-                                                            ))}
-                                                          </VStack>
-                                                        </Box>
-                                                      )}
-                                                    </Box>
+                                                              <VStack align="stretch" spacing={1} mt={1}>
+                                                                {session.incompletedTasks.map((task, taskIndex) => (
+                                                                  <Text
+                                                                    key={`session-${session.sessionId}-incompleted-${taskIndex}`}
+                                                                    fontSize="xs"
+                                                                    color="gray.200"
+                                                                  >
+                                                                    {task}
+                                                                  </Text>
+                                                                ))}
+                                                              </VStack>
+                                                            </Box>
+                                                          )}
+                                                          {fallbackTasks.length > 0 && (
+                                                            <Box mt={2}>
+                                                              <Text
+                                                                fontSize="xs"
+                                                                color="gray.500"
+                                                                textTransform="uppercase"
+                                                                letterSpacing="wide"
+                                                              >
+                                                                Tasks
+                                                              </Text>
+                                                              <VStack align="stretch" spacing={1} mt={1}>
+                                                                {fallbackTasks.map((task, taskIndex) => (
+                                                                  <Text
+                                                                    key={`session-${session.sessionId}-task-${taskIndex}`}
+                                                                    fontSize="xs"
+                                                                    color="gray.200"
+                                                                  >
+                                                                    {task}
+                                                                  </Text>
+                                                                ))}
+                                                              </VStack>
+                                                            </Box>
+                                                          )}
+                                                        </AccordionPanel>
+                                                      </Box>
+                                                    </AccordionItem>
                                                   );
                                                 })}
-                                              </VStack>
+                                              </Accordion>
                                             </Box>
                                           ) : hasLastTaskDetails ? (
                                             <Box mt={2}>

@@ -30,9 +30,6 @@ import {
   getDocs,
   query,
   orderBy,
-  setDoc,
-  increment,
-  getDoc,
 } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { database, vertexAI } from "../../firebaseResources/config";
@@ -172,7 +169,7 @@ export const NewAssistant = () => {
   const [history, setHistory] = useState([]);
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [listKey, setListKey] = useState(0);
-  const [globalAverage, setGlobalAverage] = useState(null);
+  const [globalAverage, setGlobalAverage] = useState(100);
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -295,24 +292,6 @@ export const NewAssistant = () => {
           );
         } catch (err) {
           console.error("update user task signal error", err);
-        }
-
-        try {
-          const statsDocRef = doc(database, "stats", "completion");
-          await setDoc(
-            statsDocRef,
-            { total: increment(pct), count: increment(1) },
-            { merge: true }
-          );
-          const statsSnap = await getDoc(statsDocRef);
-          if (statsSnap.exists()) {
-            const data = statsSnap.data();
-            if (data.count > 0) {
-              setGlobalAverage(data.total / data.count);
-            }
-          }
-        } catch (err) {
-          console.error("update stats error", err);
         }
 
         let analysisText = "";
@@ -450,18 +429,6 @@ export const NewAssistant = () => {
       }
       setHistory(past);
       setLoadingCurrent(false);
-      try {
-        const statsDocRef = doc(database, "stats", "completion");
-        const statsSnap = await getDoc(statsDocRef);
-        if (statsSnap.exists()) {
-          const data = statsSnap.data();
-          if (data.count > 0) {
-            setGlobalAverage(data.total / data.count);
-          }
-        }
-      } catch (err) {
-        console.error("get stats error", err);
-      }
     })();
   }, [userDoc]);
 
@@ -485,6 +452,44 @@ export const NewAssistant = () => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [startTime, completed, listCreated, finishList, memoryId]);
+
+  useEffect(() => {
+    if (!Array.isArray(history) || history.length === 0) {
+      setGlobalAverage(100);
+      return;
+    }
+
+    const values = history
+      .map((entry) => {
+        if (!entry) {
+          return null;
+        }
+
+        const candidates = [entry.percentage, entry.signalScore];
+        for (const candidate of candidates) {
+          if (typeof candidate === "number" && Number.isFinite(candidate)) {
+            return candidate;
+          }
+          if (typeof candidate === "string") {
+            const parsed = Number(candidate);
+            if (Number.isFinite(parsed)) {
+              return parsed;
+            }
+          }
+        }
+
+        return null;
+      })
+      .filter((value) => value !== null);
+
+    if (values.length === 0) {
+      setGlobalAverage(100);
+      return;
+    }
+
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    setGlobalAverage(Math.round(clampPct(average)));
+  }, [history]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
