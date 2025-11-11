@@ -30,9 +30,6 @@ import {
   getDocs,
   query,
   orderBy,
-  setDoc,
-  increment,
-  getDoc,
 } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { database, vertexAI } from "../../firebaseResources/config";
@@ -172,7 +169,7 @@ export const NewAssistant = () => {
   const [history, setHistory] = useState([]);
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [listKey, setListKey] = useState(0);
-  const [globalAverage, setGlobalAverage] = useState(null);
+  const [globalAverage, setGlobalAverage] = useState(100);
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -204,6 +201,22 @@ export const NewAssistant = () => {
         ? Math.round((completedTasks.length / tasks.length) * 100)
         : 0;
 
+      const previousTotalSignal = Number(userDoc?.totalSignalScore || 0);
+      const previousSessions = Number(userDoc?.totalSignalSessions || 0);
+      const updatedTotalSignal = previousTotalSignal + pct;
+      const updatedSessions = previousSessions + 1;
+
+      const finishedAt = serverTimestamp();
+      const sessionEntry = {
+        tasks,
+        completedTasks,
+        incompletedTasks,
+        signalScore: pct,
+        status: statusText,
+        finishedAt,
+        startedAt: startTime || null,
+      };
+
       const historyEntry = {
         id: finishedId,
         tasks,
@@ -217,6 +230,21 @@ export const NewAssistant = () => {
       };
       setHistory((prev) => [historyEntry, ...prev]);
 
+      setUserDoc((prev) => ({
+        ...(prev || {}),
+        totalSignalScore: updatedTotalSignal,
+        totalSignalSessions: updatedSessions,
+        lastTaskSignalScore: pct,
+        lastTaskStatus: statusText,
+        lastCompletedTasks: completedTasks,
+        lastIncompletedTasks: incompletedTasks,
+        activeTaskCount: 0,
+        activeTaskStatus: "",
+        activeTaskList: [],
+        lastTaskList: tasks,
+        activeTaskSessionId: null,
+      }));
+
       startNewList();
 
       (async () => {
@@ -226,7 +254,7 @@ export const NewAssistant = () => {
             completed: completedTasks,
             incompleted: incompletedTasks,
             finished: true,
-            finishedAt: serverTimestamp(),
+            finishedAt,
             percentage: pct,
             status: statusText,
           });
@@ -235,21 +263,35 @@ export const NewAssistant = () => {
         }
 
         try {
-          const statsDocRef = doc(database, "stats", "completion");
-          await setDoc(
-            statsDocRef,
-            { total: increment(pct), count: increment(1) },
-            { merge: true }
+          const sharedPayload = {
+            totalSignalScore: updatedTotalSignal,
+            totalSignalSessions: updatedSessions,
+            lastTaskSignalScore: pct,
+            lastTaskStatus: statusText,
+            lastCompletedTasksCount: completedTasks.length,
+            lastIncompletedTasksCount: incompletedTasks.length,
+            activeTaskCount: 0,
+            activeTaskStatus: "",
+            activeTaskList: [],
+            lastCompletedTasks: completedTasks,
+            lastIncompletedTasks: incompletedTasks,
+            lastTaskList: tasks,
+            lastTaskUpdatedAt: finishedAt,
+            activeTaskSessionId: null,
+            teamSessions: {
+              [finishedId]: sessionEntry,
+            },
+          };
+          await updateUser(
+            npub,
+            {
+              ...sharedPayload,
+              activeTaskStartedAt: null,
+            },
+            sharedPayload
           );
-          const statsSnap = await getDoc(statsDocRef);
-          if (statsSnap.exists()) {
-            const data = statsSnap.data();
-            if (data.count > 0) {
-              setGlobalAverage(data.total / data.count);
-            }
-          }
         } catch (err) {
-          console.error("update stats error", err);
+          console.error("update user task signal error", err);
         }
 
         let analysisText = "";
@@ -292,7 +334,16 @@ export const NewAssistant = () => {
         );
       })();
     },
-    [goalInput, memoryId, startNewList, startTime, tasks, userDoc, statusText]
+    [
+      goalInput,
+      memoryId,
+      startNewList,
+      startTime,
+      tasks,
+      userDoc,
+      statusText,
+      setUserDoc,
+    ]
   );
 
   const {
@@ -378,18 +429,6 @@ export const NewAssistant = () => {
       }
       setHistory(past);
       setLoadingCurrent(false);
-      try {
-        const statsDocRef = doc(database, "stats", "completion");
-        const statsSnap = await getDoc(statsDocRef);
-        if (statsSnap.exists()) {
-          const data = statsSnap.data();
-          if (data.count > 0) {
-            setGlobalAverage(data.total / data.count);
-          }
-        }
-      } catch (err) {
-        console.error("get stats error", err);
-      }
     })();
   }, [userDoc]);
 
@@ -413,6 +452,45 @@ export const NewAssistant = () => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [startTime, completed, listCreated, finishList, memoryId]);
+
+  useEffect(() => {
+    if (!Array.isArray(history) || history.length === 0) {
+      setGlobalAverage(100);
+      return;
+    }
+
+    const values = history
+      .map((entry) => {
+        if (!entry) {
+          return null;
+        }
+
+        const candidates = [entry.percentage, entry.signalScore];
+        for (const candidate of candidates) {
+          if (typeof candidate === "number" && Number.isFinite(candidate)) {
+            return candidate;
+          }
+          if (typeof candidate === "string") {
+            const parsed = Number(candidate);
+            if (Number.isFinite(parsed)) {
+              return parsed;
+            }
+          }
+        }
+
+        return null;
+      })
+      .filter((value) => value !== null);
+
+    if (values.length === 0) {
+      setGlobalAverage(100);
+      return;
+    }
+
+    const average =
+      values.reduce((sum, value) => sum + value, 0) / values.length;
+    setGlobalAverage(Math.round(clampPct(average)));
+  }, [history]);
 
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
@@ -492,6 +570,26 @@ export const NewAssistant = () => {
       fetch(
         `https://us-central1-datachecking-7997c.cloudfunctions.net/scheduleExpiredListCheck?created=${created}&userId=${npub}`
       ).catch((err) => console.error("schedule list check error", err));
+      try {
+        const startedAt = serverTimestamp();
+        const sharedPayload = {
+          activeTaskCount: tasks.length,
+          activeTaskStatus: statusText,
+          activeTaskStartedAt: startedAt,
+          activeTaskList: tasks,
+          activeTaskSessionId: docRef.id,
+        };
+        await updateUser(npub, sharedPayload, sharedPayload);
+        setUserDoc((prev) => ({
+          ...(prev || {}),
+          activeTaskCount: tasks.length,
+          activeTaskStatus: statusText,
+          activeTaskList: tasks,
+          activeTaskSessionId: docRef.id,
+        }));
+      } catch (err) {
+        console.error("update user active task error", err);
+      }
     } catch (err) {
       console.error("create list error", err);
     }
@@ -570,7 +668,7 @@ export const NewAssistant = () => {
             color="white"
             textShadow="0.75px 0.75px 0px black"
           />
-          <Text color="#03fc56" fontWeight={"bolder"}>
+          <Text color="#009a33ff" fontWeight={"bolder"}>
             Signal Score
           </Text>
         </VStack>
@@ -587,14 +685,11 @@ export const NewAssistant = () => {
           }}
         />
       </Heading>
-      <Text fontSize={"sm"} mt={4} mb={12}>
-        A task in your mind is an idea. Writing it down turns it into a plan.
-        <br />
-        <br />
+      <Text fontSize={"xs"} mt={4} mb={12}>
         What you need to accomplish in the next 16 hours is your{" "}
-        <span style={{ color: "cyan", fontWeight: "bolder" }}>signal</span>,
+        <span style={{ color: "#02a1b3", fontWeight: "bolder" }}>signal</span>,
         everything else is{" "}
-        <span style={{ color: "hotpink", fontWeight: "bolder" }}>noise.</span>{" "}
+        <span style={{ color: "#a30290", fontWeight: "bolder" }}>noise.</span>{" "}
         Aim to complete at least 80% of necessary tasks to make progress with
         your goals.
       </Text>
@@ -666,8 +761,9 @@ export const NewAssistant = () => {
                     onClick={createList}
                     isLoading={creating}
                     disabled={!tasks.length}
+                    variant={"outline"}
                   >
-                    Start Tasks
+                    Start tasks
                   </Button>
                 </>
               ) : (
@@ -696,7 +792,7 @@ export const NewAssistant = () => {
         )}
       </VStack>
 
-      <Box mt={16}>
+      <Box mt={16} marginBottom={12} paddingBottom={6}>
         <HStack justify="space-between" align="center">
           <Heading size="sm">History</Heading>
           <Button size="xs" onClick={generateAdvice}>
