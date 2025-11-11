@@ -12,22 +12,21 @@ import { mode } from "@chakra-ui/theme-tools";
 import { keyframes } from "@emotion/react";
 
 const config = {
-  initialColorMode: "dark", // or "dark" or "system"
+  initialColorMode: "light", // default to light theme
   useSystemColorMode: false, // if true, will follow OS setting
 };
 
 export const styles = {
   global: (props) => ({
     ":root": {
-      "--brand-color": localStorage.getItem("theme_color") || "#feeabd",
+      "--brand-color": localStorage.getItem("theme_color") || "#000000",
       "--font-family":
         localStorage.getItem("theme_font") || "'Inter', sans-serif",
     },
     body: {
-      // cypherpunk inspired colors
-      bg: mode("#f0f0f0", "#0d0d0d")(props),
-      color: mode("#000", "var(--brand-color)")(props),
-      backgroundColor: mode("#f0f0f0", "rgba(0,0,34)")(props),
+      bg: mode("#ffffff", "#0d0d0d")(props),
+      color: mode("#000000", "#f5f5f5")(props),
+      backgroundColor: mode("#ffffff", "rgba(0,0,34)")(props),
       fontFamily: "var(--font-family)",
     },
   }),
@@ -51,14 +50,14 @@ export const theme = extendTheme({
     Button: {
       variants: {
         solid: {
-          bg: "cyber.500",
-          color: "#000",
-          _hover: { bg: "cyber.600" },
+          bg: "#000000",
+          color: "#ffffff",
+          _hover: { bg: "#1a1a1a" },
         },
         outline: {
-          borderColor: "cyber.500",
-          color: "cyber.500",
-          _hover: { bg: "cyber.500", color: "#000" },
+          borderColor: "#000000",
+          color: "#000000",
+          _hover: { bg: "#000000", color: "#ffffff" },
         },
       },
     },
@@ -66,10 +65,10 @@ export const theme = extendTheme({
       variants: {
         outline: {
           field: {
-            borderColor: "cyber.500",
+            borderColor: "#000000",
             _focus: {
-              borderColor: "cyber.500",
-              boxShadow: "0 0 0 1px var(--brand-color)",
+              borderColor: "#000000",
+              boxShadow: "0 0 0 1px #000000",
             },
           },
         },
