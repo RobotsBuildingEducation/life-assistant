@@ -137,7 +137,10 @@ function App() {
     "rgba(255, 255, 255, 0.85)",
     "rgba(26, 32, 44, 0.85)"
   );
-  const footerBorderColor = useColorModeValue("border.default", "border.default");
+  const footerBorderColor = useColorModeValue(
+    "border.default",
+    "border.default"
+  );
   const footerTextColor = useColorModeValue("gray.800", "gray.100");
   const footerShadow = useColorModeValue(
     "0 -1px 1px rgba(0, 0, 0, 0.2)",
@@ -816,6 +819,21 @@ function App() {
           <DrawerHeader>Menu</DrawerHeader>
           <DrawerBody>
             <VStack spacing={3} align="stretch">
+              <FormControl
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <FormLabel htmlFor="color-mode-toggle" mb="0">
+                  Dark mode
+                </FormLabel>
+                <Switch
+                  id="color-mode-toggle"
+                  isChecked={colorMode === "dark"}
+                  onChange={() => toggleColorMode()}
+                />
+              </FormControl>
+              <Divider />
               <Button
                 leftIcon={<FiCopy />}
                 justifyContent="flex-start"
@@ -850,21 +868,7 @@ function App() {
               >
                 Privacy
               </Button>
-              <FormControl
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <FormLabel htmlFor="color-mode-toggle" mb="0">
-                  Dark mode
-                </FormLabel>
-                <Switch
-                  id="color-mode-toggle"
-                  isChecked={colorMode === "dark"}
-                  onChange={() => toggleColorMode()}
-                />
-              </FormControl>
-              <Divider />
+
               <Button
                 leftIcon={<FiDownload />}
                 justifyContent="flex-start"
@@ -915,6 +919,7 @@ function App() {
           <DrawerHeader>Create a team</DrawerHeader>
           <DrawerBody>
             <VStack align="stretch" spacing={4} pb={6}>
+              <Text>hi</Text>
               <FormControl>
                 <FormLabel>Team name</FormLabel>
                 <Input

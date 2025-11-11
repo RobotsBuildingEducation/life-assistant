@@ -19,7 +19,7 @@ export function RoleCanvas({
   // sphere params
   cycleSpeed = 0.0015,
   jitterScale = 0.2,
-  trailOpacity = 0.15,
+  trailOpacity = 0.35,
   pauseThreshold = 20,
 
   // plan params
@@ -28,7 +28,7 @@ export function RoleCanvas({
   waterSpeed = 0.001,
   waterAmplitude = 0.01,
 
-  transitionEase = 0.2,
+  transitionEase = 0.5,
 }) {
   const canvasRef = useRef(null);
   const roleRef = useRef(role);
@@ -39,7 +39,7 @@ export function RoleCanvas({
     roleRef.current = role;
   }, [role]);
 
-  const baseRgb = useColorModeValue("255,255,255", "0,0,37");
+  const baseRgb = useColorModeValue("247,250,252", "23,25,35");
   const fadeColor = `rgba(${baseRgb},${trailOpacity})`;
 
   useEffect(() => {
