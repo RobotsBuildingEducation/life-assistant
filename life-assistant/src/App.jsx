@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -124,6 +124,8 @@ function App() {
   const [teamActionLoading, setTeamActionLoading] = useState({});
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [teamDetails, setTeamDetails] = useState({});
+  const [userNameLookup, setUserNameLookup] = useState({});
+  const nameFetchInFlight = useRef(new Set());
 
   // Redirect based on user record (onboarding vs. assistant)
   useEffect(() => {
@@ -392,6 +394,96 @@ function App() {
       });
     };
   }, [isViewTeamsOpen, teams]);
+
+  useEffect(() => {
+    const identifiers = new Set();
+
+    teams.forEach((team) => {
+      if (team?.owner) {
+        identifiers.add(team.owner);
+      }
+      if (team?.invitedBy) {
+        identifiers.add(team.invitedBy);
+      }
+    });
+
+    Object.values(teamDetails).forEach((detail) => {
+      if (!detail) {
+        return;
+      }
+      const { owner, members, invites, memberData } = detail;
+      if (owner) {
+        identifiers.add(owner);
+      }
+      if (Array.isArray(members)) {
+        members.forEach((member) => identifiers.add(member));
+      }
+      if (Array.isArray(invites)) {
+        invites.forEach((invite) => identifiers.add(invite));
+      }
+      if (memberData && typeof memberData === "object") {
+        Object.keys(memberData).forEach((member) => identifiers.add(member));
+      }
+    });
+
+    identifiers.forEach((identifier) => {
+      if (!identifier) {
+        return;
+      }
+      if (userNameLookup[identifier] || nameFetchInFlight.current.has(identifier)) {
+        return;
+      }
+
+      nameFetchInFlight.current.add(identifier);
+      getUser(identifier)
+        .then((userRecord) => {
+          const resolvedName =
+            (typeof userRecord?.name === "string" && userRecord.name.trim()) ||
+            (typeof userRecord?.displayName === "string" &&
+              userRecord.displayName.trim()) ||
+            (typeof userRecord?.profile?.name === "string" &&
+              userRecord.profile.name.trim()) ||
+            "";
+
+          setUserNameLookup((prev) => {
+            const nextName = resolvedName || identifier;
+            if (prev[identifier] === nextName) {
+              return prev;
+            }
+            return {
+              ...prev,
+              [identifier]: nextName,
+            };
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to fetch teammate name:", error);
+          setUserNameLookup((prev) => {
+            if (prev[identifier]) {
+              return prev;
+            }
+            return {
+              ...prev,
+              [identifier]: identifier,
+            };
+          });
+        })
+        .finally(() => {
+          nameFetchInFlight.current.delete(identifier);
+        });
+    });
+  }, [teams, teamDetails, userNameLookup]);
+
+  const getDisplayName = (identifier) => {
+    if (!identifier) {
+      return "Unknown user";
+    }
+    const resolved = userNameLookup[identifier];
+    if (typeof resolved === "string" && resolved.trim()) {
+      return resolved.trim();
+    }
+    return identifier;
+  };
 
   const handleOpenCreateTeam = () => {
     setTeamName("");
@@ -891,7 +983,7 @@ function App() {
                       >
                         <Text fontWeight="semibold">{team.name}</Text>
                         <Text fontSize="sm" color="gray.500">
-                          Invited by {team.owner}
+                          Invited by {getDisplayName(team.owner)}
                         </Text>
                         <HStack mt={3} spacing={2}>
                           <Button
@@ -939,7 +1031,7 @@ function App() {
                         >
                           <Text fontWeight="semibold">{team.name}</Text>
                           <Text fontSize="sm" color="gray.500">
-                            Owner: {team.owner}
+                            Owner: {getDisplayName(team.owner)}
                           </Text>
                           {members.length > 0 && (
                             <Box mt={2}>
@@ -1146,7 +1238,7 @@ function App() {
                                           fontSize="sm"
                                           wordBreak="break-all"
                                         >
-                                          {member}
+                                          {getDisplayName(member)}
                                         </Text>
                                         {member === team.owner && (
                                           <Tag size="sm" colorScheme="purple" borderRadius="full">
@@ -1462,7 +1554,7 @@ function App() {
                                       borderRadius="full"
                                       colorScheme="yellow"
                                     >
-                                      <TagLabel>{invite}</TagLabel>
+                                      <TagLabel>{getDisplayName(invite)}</TagLabel>
                                     </Tag>
                                   </WrapItem>
                                 ))}
