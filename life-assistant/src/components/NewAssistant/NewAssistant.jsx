@@ -173,6 +173,10 @@ export const NewAssistant = () => {
   const [advice, setAdvice] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [taskNotes, setTaskNotes] = useState([]);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteTargetIndex, setNoteTargetIndex] = useState(null);
 
   const normalizeTask = (t) => (typeof t === "string" ? t : t.text || "");
 
@@ -187,6 +191,8 @@ export const NewAssistant = () => {
     setListKey((k) => k + 1);
     setTaskInput("");
     setStatusText("");
+    setTaskNotes([]);
+    localStorage.removeItem("draft_task_notes");
     localStorage.removeItem("draft_tasks");
     localStorage.removeItem("draft_status");
   }, []);
@@ -295,34 +301,36 @@ export const NewAssistant = () => {
         }
 
         let analysisText = "";
-        try {
-          const prompt = `Goal: ${
-            userDoc?.mainGoal || goalInput
-          }\nTasks completed:\n${tasks
-            .map((t, i) => `${i + 1}. ${t}`)
-            .join(
-              "\n"
-            )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
-          const stream = await analysisModel.generateContentStream(prompt);
-          for await (const chunk of stream.stream) {
-            const txt = chunk.text();
-            analysisText += txt;
-            const partial = analysisText;
-            setHistory((prev) =>
-              prev.map((h) =>
-                h.id === finishedId ? { ...h, analysis: partial } : h
-              )
-            );
+        if (aiEnabled) {
+          try {
+            const prompt = `Goal: ${
+              userDoc?.mainGoal || goalInput
+            }\nTasks completed:\n${tasks
+              .map((t, i) => `${i + 1}. ${t}`)
+              .join(
+                "\n"
+              )}\n\nBriefly review what was done well relative to the goal and suggest what could be improved. Keep it brief, simple and professional - max 1 sentence in total. `;
+            const stream = await analysisModel.generateContentStream(prompt);
+            for await (const chunk of stream.stream) {
+              const txt = chunk.text();
+              analysisText += txt;
+              const partial = analysisText;
+              setHistory((prev) =>
+                prev.map((h) =>
+                  h.id === finishedId ? { ...h, analysis: partial } : h
+                )
+              );
+            }
+          } catch (err) {
+            console.error("analysis error", err);
           }
-        } catch (err) {
-          console.error("analysis error", err);
-        }
 
-        try {
-          const memDoc = doc(database, "users", npub, "memories", finishedId);
-          await updateDoc(memDoc, { analysis: analysisText });
-        } catch (err) {
-          console.error("update analysis error", err);
+          try {
+            const memDoc = doc(database, "users", npub, "memories", finishedId);
+            await updateDoc(memDoc, { analysis: analysisText });
+          } catch (err) {
+            console.error("update analysis error", err);
+          }
         }
 
         setHistory((prev) =>
@@ -343,6 +351,7 @@ export const NewAssistant = () => {
       userDoc,
       statusText,
       setUserDoc,
+      aiEnabled,
     ]
   );
 
@@ -358,6 +367,12 @@ export const NewAssistant = () => {
     onClose: onAdviceClose,
   } = useDisclosure();
 
+  const {
+    isOpen: isNoteOpen,
+    onOpen: onNoteOpen,
+    onClose: onNoteClose,
+  } = useDisclosure();
+
   useEffect(() => {
     const saved = localStorage.getItem("draft_tasks");
     if (saved) {
@@ -370,6 +385,23 @@ export const NewAssistant = () => {
     const savedStatus = localStorage.getItem("draft_status");
     if (savedStatus) {
       setStatusText(savedStatus);
+    }
+
+    const savedNotes = localStorage.getItem("draft_task_notes");
+    if (savedNotes) {
+      try {
+        const parsed = JSON.parse(savedNotes);
+        if (Array.isArray(parsed)) {
+          setTaskNotes(parsed.map((note) => (typeof note === "string" ? note : "")));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const storedAiToggle = localStorage.getItem("ai_enabled");
+    if (storedAiToggle !== null) {
+      setAiEnabled(storedAiToggle !== "false");
     }
   }, []);
 
@@ -433,6 +465,18 @@ export const NewAssistant = () => {
   }, [userDoc]);
 
   useEffect(() => {
+    setTaskNotes((prev) => {
+      const next = [...prev];
+      if (next.length < tasks.length) {
+        next.push(...Array(tasks.length - next.length).fill(""));
+      } else if (next.length > tasks.length) {
+        next.length = tasks.length;
+      }
+      return next;
+    });
+  }, [tasks.length]);
+
+  useEffect(() => {
     if (!startTime) return;
     const total = 16 * 60 * 60 * 1000;
     const tick = () => {
@@ -492,6 +536,14 @@ export const NewAssistant = () => {
     setGlobalAverage(Math.round(clampPct(average)));
   }, [history]);
 
+  useEffect(() => {
+    localStorage.setItem("draft_task_notes", JSON.stringify(taskNotes));
+  }, [taskNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("ai_enabled", aiEnabled ? "true" : "false");
+  }, [aiEnabled]);
+
   const saveGoal = async () => {
     const npub = localStorage.getItem("local_npub");
     const newGoal = goalInput.trim();
@@ -524,6 +576,7 @@ export const NewAssistant = () => {
 
   const removeTask = (index) => {
     setTasks((prev) => prev.filter((_, i) => i !== index));
+    setTaskNotes((prev) => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -618,6 +671,13 @@ export const NewAssistant = () => {
   };
 
   const generateAdvice = async () => {
+    if (!aiEnabled) {
+      onAdviceOpen();
+      setAdvice(
+        "AI assistance is disabled. Enable it above the history section to get advice."
+      );
+      return;
+    }
     const goal = userDoc?.mainGoal || goalInput;
     const historyLines = history
       .map((h, i) => {
@@ -642,6 +702,32 @@ export const NewAssistant = () => {
       console.error("advice error", err);
     }
     setAdviceLoading(false);
+  };
+
+  const openNoteModal = (index) => {
+    setNoteTargetIndex(index);
+    setNoteDraft(taskNotes[index] || "");
+    onNoteOpen();
+  };
+
+  const saveNote = () => {
+    if (noteTargetIndex === null || noteTargetIndex === undefined) return;
+    setTaskNotes((prev) => {
+      const next = [...prev];
+      next[noteTargetIndex] = noteDraft.trim();
+      return next;
+    });
+    onNoteClose();
+  };
+
+  const deleteNote = () => {
+    if (noteTargetIndex === null || noteTargetIndex === undefined) return;
+    setTaskNotes((prev) => {
+      const next = [...prev];
+      next[noteTargetIndex] = "";
+      return next;
+    });
+    onNoteClose();
   };
 
   if (loadingUser) {
@@ -733,26 +819,42 @@ export const NewAssistant = () => {
 
                   <Box mt={12} mb={8}>
                     {tasks.map((t, i) => (
-                      <HStack key={i} justify="space-between" mt={4}>
-                        <Text>
-                          {i + 1}. {t}
-                        </Text>
-                        <IconButton
-                          aria-label="Delete task"
-                          icon={<MinusIcon />}
-                          size="sm"
-                          onClick={() => removeTask(i)}
-                        />
-                      </HStack>
+                      <VStack align="stretch" key={i} mt={4} spacing={1}>
+                        <HStack justify="space-between" align="flex-start">
+                          <Text>
+                            {i + 1}. {t}
+                          </Text>
+                          <HStack spacing={2}>
+                            <IconButton
+                              aria-label="Add or edit note"
+                              icon={<EditIcon />}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openNoteModal(i)}
+                            />
+                            <IconButton
+                              aria-label="Delete task"
+                              icon={<MinusIcon />}
+                              size="sm"
+                              onClick={() => removeTask(i)}
+                            />
+                          </HStack>
+                        </HStack>
+                        {taskNotes[i] && (
+                          <Text fontSize="xs" color="gray.500">
+                            Note: {taskNotes[i]}
+                          </Text>
+                        )}
+                      </VStack>
                     ))}
                   </Box>
 
                   {tasks.length > 0 && (
-                    <Textarea
-                      placeholder="How are you feeling or what are you thinking?"
-                      value={statusText}
-                      onChange={(e) => updateStatus(e.target.value)}
-                      mt={4}
+                <Textarea
+                  placeholder="How are you feeling or what are you thinking?"
+                  value={statusText}
+                  onChange={(e) => updateStatus(e.target.value)}
+                  mt={4}
                       mb={8}
                     />
                   )}
@@ -769,15 +871,31 @@ export const NewAssistant = () => {
               ) : (
                 <>
                   {tasks.map((t, i) => (
-                    <HStack key={i}>
-                      <Switch
-                        isChecked={!!completed[i]}
-                        onChange={() => toggleTask(i)}
-                      />
-                      <Text>
-                        {i + 1}. {t}
-                      </Text>
-                    </HStack>
+                    <VStack key={i} align="stretch" spacing={1}>
+                      <HStack justify="space-between" align="flex-start">
+                        <HStack>
+                          <Switch
+                            isChecked={!!completed[i]}
+                            onChange={() => toggleTask(i)}
+                          />
+                          <Text>
+                            {i + 1}. {t}
+                          </Text>
+                        </HStack>
+                        <IconButton
+                          aria-label="Add or edit note"
+                          icon={<EditIcon />}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openNoteModal(i)}
+                        />
+                      </HStack>
+                      {taskNotes[i] && (
+                        <Text fontSize="xs" color="gray.500" ml={10}>
+                          Note: {taskNotes[i]}
+                        </Text>
+                      )}
+                    </VStack>
                   ))}
 
                   <Textarea
@@ -793,12 +911,27 @@ export const NewAssistant = () => {
       </VStack>
 
       <Box mt={16} marginBottom={12} paddingBottom={6}>
-        <HStack justify="space-between" align="center">
-          <Heading size="sm">History</Heading>
-          <Button size="xs" onClick={generateAdvice}>
-            Generate advice
-          </Button>
-        </HStack>
+        <VStack align="stretch" spacing={2} mb={2}>
+          <HStack justify="space-between" align="center">
+            <Heading size="sm">History</Heading>
+            <Button size="xs" onClick={generateAdvice} isDisabled={!aiEnabled}>
+              Generate advice
+            </Button>
+          </HStack>
+          <HStack justify="space-between">
+            <Text fontSize="sm" color="gray.500">
+              Toggle AI assistance to enable automated analysis and advice.
+            </Text>
+            <HStack>
+              <Text fontSize="sm">AI</Text>
+              <Switch
+                isChecked={aiEnabled}
+                onChange={(e) => setAiEnabled(e.target.checked)}
+                colorScheme="purple"
+              />
+            </HStack>
+          </HStack>
+        </VStack>
 
         {loadingCurrent ? (
           <Spinner size="sm" mt={2} />
@@ -813,8 +946,24 @@ export const NewAssistant = () => {
               Math.round(
                 ((h.completed || []).length / (h.tasks?.length || 1)) * 100
               );
+            const finishedAt =
+              h.finishedAt?.toDate?.() instanceof Date
+                ? h.finishedAt.toDate()
+                : h.finishedAt instanceof Date
+                ? h.finishedAt
+                : h.timestamp?.toDate?.() instanceof Date
+                ? h.timestamp.toDate()
+                : h.timestamp instanceof Date
+                ? h.timestamp
+                : null;
+            const dateLabel = finishedAt
+              ? finishedAt.toLocaleString()
+              : "No timestamp available";
             return (
               <Box key={h.id} borderWidth="1px" p={2} mt={2} borderRadius="md">
+                <Text fontSize="xs" color="gray.500" mb={1}>
+                  {dateLabel}
+                </Text>
                 {h.tasks.map((task, idx) => (
                   <Text key={idx} mb={1}>
                     {idx + 1}. {task}
@@ -846,6 +995,36 @@ export const NewAssistant = () => {
           })
         )}
       </Box>
+
+      <Modal isOpen={isNoteOpen} onClose={onNoteClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Task note</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {noteTargetIndex !== null && noteTargetIndex !== undefined && (
+              <Text fontSize="sm" mb={2} color="gray.600">
+                Task {noteTargetIndex + 1}: {tasks[noteTargetIndex]}
+              </Text>
+            )}
+            <Textarea
+              placeholder="Add a quick note for this task"
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <HStack spacing={2}>
+              <Button variant="ghost" onClick={deleteNote} isDisabled={!noteDraft}>
+                Delete note
+              </Button>
+              <Button onClick={saveNote} colorScheme="purple">
+                Save note
+              </Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Modal isOpen={isGoalOpen} onClose={onGoalClose} isCentered>
         <ModalOverlay />
