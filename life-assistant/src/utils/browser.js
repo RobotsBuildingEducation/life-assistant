@@ -1,8 +1,6 @@
 export const isUnsupportedBrowser = () => {
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
-  console.log("user agent", userAgent);
-  console.log("navigatior", navigator);
   const isByteDanceWebview = /ByteDanceWebview/.test(userAgent) && "Tiktok";
   const isByteLocale = /ByteLocale/.test(userAgent) && "Tiktok";
   const isMusicalLy = /musical_ly/.test(userAgent) && "Tiktok";

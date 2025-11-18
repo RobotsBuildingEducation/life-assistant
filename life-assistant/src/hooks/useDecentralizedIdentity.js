@@ -55,8 +55,8 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       "nsec",
       bech32.toWords(Buffer.from(privateKey, "hex"))
     );
-      setNostrPrivKey(encodedNsec);
-      setNostrPubKey(publicKey);
+    setNostrPrivKey(encodedNsec);
+    setNostrPubKey(publicKey);
 
     if (!localStorage.getItem("local_nsec")) {
       //Creating profile... 2/4
@@ -71,8 +71,8 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
           // // "https://primal.b-cdn.net/media-cache?s=o&a=1&u=https%3A%2F%2Fm.primal.net%2FKBLq.png",
         }),
         0,
-        publicKey,
-        encodedNsec
+        encodedNsec,
+        publicKey
       );
 
       // setLoadingMessage("createAccount.isCreatingProfilePicture");
@@ -94,8 +94,8 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       postNostrContent(
         "gm nostr! I've joined #LearnWithNostr from Tiktok by creating an account with https://robotsbuildingeducation.com so I can learn how to code with AI.",
         1,
-        publicKey,
-        encodedNsec
+        encodedNsec,
+        publicKey
       );
       // }
       // await followUserOnNostr(
@@ -104,6 +104,8 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       //   encodedNsec
       // );
     }
+
+    console.log("encodedNsec", encodedNsec);
 
     localStorage.setItem("local_nsec", encodedNsec);
     localStorage.setItem("local_npub", publicKey);
@@ -168,6 +170,7 @@ export const useDecentralizedIdentity = (initialNpub, initialNsec) => {
       const user = await signer.user();
       setNostrPubKey(user.npub);
       setNostrPrivKey(nsec);
+      console.log("nsec", nsec);
       localStorage.setItem("local_npub", user.npub);
       localStorage.setItem("local_nsec", nsec);
       setErrorMessage(null);

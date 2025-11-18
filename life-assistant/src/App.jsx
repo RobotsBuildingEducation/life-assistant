@@ -919,7 +919,11 @@ function App() {
           <DrawerHeader>Create a team</DrawerHeader>
           <DrawerBody>
             <VStack align="stretch" spacing={4} pb={6}>
-              <Text>hi</Text>
+              <Text fontSize="sm">
+                Create a team by adding members with their ID. ID's can be found
+                in the menu by pressing "Copy ID"
+              </Text>
+
               <FormControl>
                 <FormLabel>Team name</FormLabel>
                 <Input
