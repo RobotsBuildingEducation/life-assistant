@@ -226,6 +226,7 @@ export const NewAssistant = () => {
       const historyEntry = {
         id: finishedId,
         tasks,
+        taskNotes,
         completed: completedTasks,
         incompleted: incompletedTasks,
         percentage: pct,
@@ -263,6 +264,7 @@ export const NewAssistant = () => {
             finishedAt,
             percentage: pct,
             status: statusText,
+            taskNotes,
           });
         } catch (err) {
           console.error("update memory error", err);
@@ -435,6 +437,7 @@ export const NewAssistant = () => {
           completed: (data.completed || []).map(normalizeTask),
           incompleted: (data.incompleted || []).map(normalizeTask),
           status: data.status || "",
+          taskNotes: Array.isArray(data.taskNotes) ? data.taskNotes : [],
         };
         if (!current && !data.finished) {
           current = converted;
@@ -445,6 +448,7 @@ export const NewAssistant = () => {
       if (current) {
         setMemoryId(current.id);
         setTasks(current.tasks || []);
+        setTaskNotes(current.taskNotes || []);
         const completedMap = {};
         (current.completed || []).forEach((t) => {
           const idx = (current.tasks || []).findIndex((ct) => ct === t);
@@ -457,6 +461,7 @@ export const NewAssistant = () => {
           setListCreated(true);
           localStorage.removeItem("draft_tasks");
           localStorage.removeItem("draft_status");
+          localStorage.removeItem("draft_task_notes");
         }
       }
       setHistory(past);
@@ -613,6 +618,7 @@ export const NewAssistant = () => {
       const memRef = collection(database, "users", npub, "memories");
       const docRef = await addDoc(memRef, {
         tasks,
+        taskNotes,
         status: statusText,
         completed: [],
         incompleted: tasks,
@@ -965,9 +971,16 @@ export const NewAssistant = () => {
                   {dateLabel}
                 </Text>
                 {h.tasks.map((task, idx) => (
-                  <Text key={idx} mb={1}>
-                    {idx + 1}. {task}
-                  </Text>
+                  <VStack key={idx} align="stretch" spacing={0} mb={1}>
+                    <Text>
+                      {idx + 1}. {task}
+                    </Text>
+                    {h.taskNotes && h.taskNotes[idx] && (
+                      <Text fontSize="xs" color="gray.500" ml={4}>
+                        Note: {h.taskNotes[idx]}
+                      </Text>
+                    )}
+                  </VStack>
                 ))}
                 {h.status && (
                   <Text fontSize="sm" color="gray.500" mt={1}>
