@@ -21,7 +21,7 @@ export const Landing = () => {
   const navigate = useNavigate();
   const [authField, setAuthField] = useState("");
   const [role, setRole] = useState("chores");
-  const { colorMode, toggleColorMode } = useColorMode();
+  const { colorMode } = useColorMode();
 
   // define the cycle of roles in the same order as RoleCanvas
   const roles = [

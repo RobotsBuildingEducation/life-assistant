@@ -66,6 +66,7 @@ import { Onboarding } from "./components/Onboarding/Onboarding";
 import { Landing } from "./components/Landing/Landing";
 import { Assistant } from "./components/Assistant/Assistant";
 import NewAssistant from "./components/NewAssistant/NewAssistant";
+import LanguageLab from "./components/LanguageLab/LanguageLab";
 import { useDecentralizedIdentity } from "./hooks/useDecentralizedIdentity";
 import { database, messaging } from "./firebaseResources/config";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
@@ -2086,6 +2087,7 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/assistant" element={<NewAssistant />} />
         <Route path="/archived/assistant" element={<Assistant />} />
+        <Route path="/language-lab" element={<LanguageLab />} />
       </Routes>
     </>
   );
