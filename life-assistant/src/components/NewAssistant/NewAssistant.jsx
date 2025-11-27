@@ -918,9 +918,12 @@ export const NewAssistant = () => {
                         />
                       </HStack>
                       {taskNotes[i] && (
-                        <Text fontSize="xs" color="gray.500" ml={10}>
-                          Note: {taskNotes[i]}
-                        </Text>
+                        <Box ml={10} fontSize="xs" color="gray.500">
+                          <Text fontWeight="semibold">Note:</Text>
+                          <ReactMarkdown components={markdownTheme}>
+                            {taskNotes[i]}
+                          </ReactMarkdown>
+                        </Box>
                       )}
                     </VStack>
                   ))}
@@ -997,9 +1000,12 @@ export const NewAssistant = () => {
                       {idx + 1}. {task}
                     </Text>
                     {h.taskNotes && h.taskNotes[idx] && (
-                      <Text fontSize="xs" color="gray.500" ml={4}>
-                        Note: {h.taskNotes[idx]}
-                      </Text>
+                      <Box ml={4} fontSize="xs" color="gray.500">
+                        <Text fontWeight="semibold">Note:</Text>
+                        <ReactMarkdown components={markdownTheme}>
+                          {h.taskNotes[idx]}
+                        </ReactMarkdown>
+                      </Box>
                     )}
                   </VStack>
                 ))}
