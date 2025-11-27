@@ -179,6 +179,12 @@ export const NewAssistant = () => {
   const [noteTargetIndex, setNoteTargetIndex] = useState(null);
 
   const normalizeTask = (t) => (typeof t === "string" ? t : t.text || "");
+  const extractLegacyNote = (task) => {
+    if (!task || typeof task !== "object") return "";
+    if (typeof task.note === "string") return task.note;
+    if (typeof task.notes === "string") return task.notes;
+    return "";
+  };
 
   const startNewList = useCallback(() => {
     setTasks([]);
@@ -430,14 +436,29 @@ export const NewAssistant = () => {
       const past = [];
       snap.forEach((docSnap) => {
         const data = docSnap.data();
+        const tasks = data.tasks || [];
+        const normalizedTasks = tasks.map(normalizeTask);
+        const legacyNotes = tasks.map(extractLegacyNote);
+        const normalizedNotes = Array.isArray(data.taskNotes)
+          ? data.taskNotes.map((note) =>
+              typeof note === "string"
+                ? note
+                : typeof note === "number"
+                ? String(note)
+                : ""
+            )
+          : legacyNotes;
+        while (normalizedNotes.length < normalizedTasks.length) {
+          normalizedNotes.push("");
+        }
         const converted = {
           id: docSnap.id,
           ...data,
-          tasks: (data.tasks || []).map(normalizeTask),
+          tasks: normalizedTasks,
           completed: (data.completed || []).map(normalizeTask),
           incompleted: (data.incompleted || []).map(normalizeTask),
           status: data.status || "",
-          taskNotes: Array.isArray(data.taskNotes) ? data.taskNotes : [],
+          taskNotes: normalizedNotes.slice(0, normalizedTasks.length),
         };
         if (!current && !data.finished) {
           current = converted;
