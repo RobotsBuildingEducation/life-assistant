@@ -783,6 +783,7 @@ function App() {
           px={4}
           boxShadow={footerShadow}
           zIndex={1300}
+          pb={6}
         >
           <HStack spacing={3} justify="center">
             <Button colorScheme="purple" onClick={handleOpenCreateTeam}>
