@@ -43,6 +43,8 @@ const analysisModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
 
+const formatMarkdown = (value = "") => value.replace(/\r?\n/g, "  \n");
+
 // --- Wave-style progress bar (same spec as CloudTransition) ---
 const clampPct = (n) => Math.max(0, Math.min(100, Number(n) || 0));
 const MotionG = motion.g;
@@ -868,9 +870,12 @@ export const NewAssistant = () => {
                           </HStack>
                         </HStack>
                         {taskNotes[i] && (
-                          <Text fontSize="xs" color="gray.500">
-                            Note: {taskNotes[i]}
-                          </Text>
+                          <Box ml={10} fontSize="xs" color="gray.500">
+                            <Text fontWeight="semibold">Note:</Text>
+                            <ReactMarkdown components={markdownTheme}>
+                              {formatMarkdown(taskNotes[i])}
+                            </ReactMarkdown>
+                          </Box>
                         )}
                       </VStack>
                     ))}
@@ -921,7 +926,7 @@ export const NewAssistant = () => {
                         <Box ml={10} fontSize="xs" color="gray.500">
                           <Text fontWeight="semibold">Note:</Text>
                           <ReactMarkdown components={markdownTheme}>
-                            {taskNotes[i]}
+                            {formatMarkdown(taskNotes[i])}
                           </ReactMarkdown>
                         </Box>
                       )}
@@ -1003,7 +1008,7 @@ export const NewAssistant = () => {
                       <Box ml={4} fontSize="xs" color="gray.500">
                         <Text fontWeight="semibold">Note:</Text>
                         <ReactMarkdown components={markdownTheme}>
-                          {h.taskNotes[idx]}
+                          {formatMarkdown(h.taskNotes[idx])}
                         </ReactMarkdown>
                       </Box>
                     )}
@@ -1026,7 +1031,7 @@ export const NewAssistant = () => {
                 />
                 {h.analysis && (
                   <ReactMarkdown components={markdownTheme}>
-                    {h.analysis}
+                    {formatMarkdown(h.analysis)}
                   </ReactMarkdown>
                 )}
                 {h.generating && <Spinner size="sm" mt={2} />}
@@ -1109,7 +1114,9 @@ export const NewAssistant = () => {
           <ModalCloseButton />
           <ModalBody>
             {advice && (
-              <ReactMarkdown components={markdownTheme}>{advice}</ReactMarkdown>
+              <ReactMarkdown components={markdownTheme}>
+                {formatMarkdown(advice)}
+              </ReactMarkdown>
             )}
             {adviceLoading && <Spinner size="sm" mt={2} />}
           </ModalBody>
