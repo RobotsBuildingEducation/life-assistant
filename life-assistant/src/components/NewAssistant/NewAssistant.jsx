@@ -428,7 +428,10 @@ export const NewAssistant = () => {
 
   useEffect(() => {
     if (!userDoc) return;
-    setLoadingCurrent(true);
+    const shouldShowLoading = !listCreated;
+    if (shouldShowLoading) {
+      setLoadingCurrent(true);
+    }
     (async () => {
       const npub = localStorage.getItem("local_npub");
       const memRef = collection(database, "users", npub, "memories");
@@ -490,7 +493,7 @@ export const NewAssistant = () => {
       setHistory(past);
       setLoadingCurrent(false);
     })();
-  }, [userDoc]);
+  }, [listCreated, userDoc]);
 
   useEffect(() => {
     setTaskNotes((prev) => {
