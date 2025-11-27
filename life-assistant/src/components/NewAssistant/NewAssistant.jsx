@@ -43,6 +43,8 @@ const analysisModel = getGenerativeModel(vertexAI, {
   model: "gemini-2.0-flash",
 });
 
+const formatMarkdown = (value = "") => value.replace(/\r?\n/g, "  \n");
+
 // --- Wave-style progress bar (same spec as CloudTransition) ---
 const clampPct = (n) => Math.max(0, Math.min(100, Number(n) || 0));
 const MotionG = motion.g;
@@ -426,7 +428,10 @@ export const NewAssistant = () => {
 
   useEffect(() => {
     if (!userDoc) return;
-    setLoadingCurrent(true);
+    const shouldShowLoading = !listCreated;
+    if (shouldShowLoading) {
+      setLoadingCurrent(true);
+    }
     (async () => {
       const npub = localStorage.getItem("local_npub");
       const memRef = collection(database, "users", npub, "memories");
@@ -488,7 +493,7 @@ export const NewAssistant = () => {
       setHistory(past);
       setLoadingCurrent(false);
     })();
-  }, [userDoc]);
+  }, [listCreated, userDoc]);
 
   useEffect(() => {
     setTaskNotes((prev) => {
@@ -868,9 +873,12 @@ export const NewAssistant = () => {
                           </HStack>
                         </HStack>
                         {taskNotes[i] && (
-                          <Text fontSize="xs" color="gray.500">
-                            Note: {taskNotes[i]}
-                          </Text>
+                          <Box ml={10} fontSize="xs" color="gray.500">
+                            <Text fontWeight="semibold">Note:</Text>
+                            <ReactMarkdown components={markdownTheme}>
+                              {formatMarkdown(taskNotes[i])}
+                            </ReactMarkdown>
+                          </Box>
                         )}
                       </VStack>
                     ))}
@@ -918,9 +926,12 @@ export const NewAssistant = () => {
                         />
                       </HStack>
                       {taskNotes[i] && (
-                        <Text fontSize="xs" color="gray.500" ml={10}>
-                          Note: {taskNotes[i]}
-                        </Text>
+                        <Box ml={10} fontSize="xs" color="gray.500">
+                          <Text fontWeight="semibold">Note:</Text>
+                          <ReactMarkdown components={markdownTheme}>
+                            {formatMarkdown(taskNotes[i])}
+                          </ReactMarkdown>
+                        </Box>
                       )}
                     </VStack>
                   ))}
@@ -997,9 +1008,12 @@ export const NewAssistant = () => {
                       {idx + 1}. {task}
                     </Text>
                     {h.taskNotes && h.taskNotes[idx] && (
-                      <Text fontSize="xs" color="gray.500" ml={4}>
-                        Note: {h.taskNotes[idx]}
-                      </Text>
+                      <Box ml={4} fontSize="xs" color="gray.500">
+                        <Text fontWeight="semibold">Note:</Text>
+                        <ReactMarkdown components={markdownTheme}>
+                          {formatMarkdown(h.taskNotes[idx])}
+                        </ReactMarkdown>
+                      </Box>
                     )}
                   </VStack>
                 ))}
@@ -1020,7 +1034,7 @@ export const NewAssistant = () => {
                 />
                 {h.analysis && (
                   <ReactMarkdown components={markdownTheme}>
-                    {h.analysis}
+                    {formatMarkdown(h.analysis)}
                   </ReactMarkdown>
                 )}
                 {h.generating && <Spinner size="sm" mt={2} />}
@@ -1103,7 +1117,9 @@ export const NewAssistant = () => {
           <ModalCloseButton />
           <ModalBody>
             {advice && (
-              <ReactMarkdown components={markdownTheme}>{advice}</ReactMarkdown>
+              <ReactMarkdown components={markdownTheme}>
+                {formatMarkdown(advice)}
+              </ReactMarkdown>
             )}
             {adviceLoading && <Spinner size="sm" mt={2} />}
           </ModalBody>
